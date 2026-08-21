@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-21T10:11:00+05:30",
+  "title": "Design System: Codestreet Governance",
+  "extensions": {
+    "colorMeta": {
+      "accent": { "role": "primary", "displayName": "Watchtower Amber", "canonical": "oklch(0.65 0.14 75)", "tonalRamp": ["#1a1400", "#2f2600", "#4a3b00", "#6b5500", "#8c6e00", "#ad8700", "#d4a300", "#f5be0b", "#ffe88a", "#fff8d6"] },
+      "bg-primary": { "role": "neutral", "displayName": "Pit Black", "canonical": "oklch(0.03 0.01 290)", "tonalRamp": ["#000000", "#09090b", "#1c1c1f", "#2d2d30", "#3f3f42", "#525255", "#67676a", "#7d7d80", "#949497", "#acacae"] },
+      "semantic-green": { "role": "semantic", "displayName": "Allowed Green", "canonical": "oklch(0.62 0.18 150)", "tonalRamp": ["#002b13", "#004d24", "#007535", "#009e47", "#10b981", "#44d699", "#6ee0b0", "#96eac6", "#bff3db", "#e8fcf1"] },
+      "semantic-red": { "role": "semantic", "displayName": "Denied Red", "canonical": "oklch(0.58 0.22 25)", "tonalRamp": ["#2b0000", "#4d0000", "#750202", "#9e0b0b", "#ef4444", "#f56565", "#f88888", "#fbaaaa", "#fccccc", "#feeeee"] },
+      "semantic-orange": { "role": "semantic", "displayName": "Flagged Orange", "canonical": "oklch(0.72 0.17 70)", "tonalRamp": ["#2b1a00", "#4d2f00", "#754800", "#9e6400", "#f59e0b", "#f7b235", "#f9c55e", "#fbd888", "#fceab1", "#fef8da"] }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Inter", "purpose": "All UI text: headings, body, labels, buttons." },
+      "mono": { "displayName": "JetBrains Mono", "purpose": "Monetary values, agent IDs, timestamps, transaction IDs." }
+    },
+    "shadows": [
+      { "name": "glow-kill-active", "value": "0 0 15px rgba(239, 68, 68, 0.5)", "purpose": "Red glow on kill-switch button when fleet is killed." },
+      { "name": "glow-kill-restored", "value": "0 0 15px rgba(16, 185, 129, 0.2)", "purpose": "Green glow on kill-switch button when agents are restored." },
+      { "name": "glow-ambient-amber", "value": "0 0 20px rgba(245, 158, 11, 0.15)", "purpose": "Subtle amber ambient glow for brand atmosphere." }
+    ],
+    "motion": [
+      { "name": "ease-default", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for state transitions (hover, active, toggles)." },
+      { "name": "ease-out", "value": "cubic-bezier(0, 0, 0.2, 1)", "purpose": "Exit animations (slide-in, fade-out)." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Button hover/active transitions." },
+      { "name": "duration-normal", "value": "200ms", "purpose": "Kill-switch toggle, card opacity change." },
+      { "name": "duration-slow", "value": "300ms", "purpose": "Progress bar fill animation." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "1024px", "purpose": "Collapse sidebar below this width." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Danger Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Kill-switch toggle and high-urgency actions.",
+      "html": "<button class=\"ds-btn-danger\">GLOBAL KILL SWITCH</button>",
+      "css": ".ds-btn-danger { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer; border: none; font-family: Inter, sans-serif; background: #ef4444; color: #fff; box-shadow: 0 4px 14px 0 rgba(239,68,68,0.39); transition: all 0.15s; user-select: none; } .ds-btn-danger:hover { background: #dc2626; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(239,68,68,0.4); } .ds-btn-danger:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary actions: simulator controls, inject buttons.",
+      "html": "<button class=\"ds-btn-outline\">Start Simulator</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer; font-family: Inter, sans-serif; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #f4f4f5; transition: all 0.15s; user-select: none; } .ds-btn-outline:hover { background: rgba(255,255,255,0.05); } .ds-btn-outline:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Inline utility actions: Export CSV.",
+      "html": "<button class=\"ds-btn-ghost\">Export CSV</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500; cursor: pointer; font-family: Inter, sans-serif; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #a1a1aa; transition: all 0.15s; user-select: none; } .ds-btn-ghost:hover { background: rgba(255,255,255,0.05); color: #f4f4f5; } .ds-btn-ghost:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Decision Badge",
+      "kind": "chip",
+      "refersTo": "badge-allowed",
+      "description": "Transaction decision indicators. Three semantic variants.",
+      "html": "<span class=\"ds-badge ds-badge-allowed\">allowed</span> <span class=\"ds-badge ds-badge-denied\">denied</span> <span class=\"ds-badge ds-badge-flagged\">flagged</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid; font-family: Inter, sans-serif; } .ds-badge-allowed { background: rgba(16,185,129,0.1); color: #10b981; border-color: rgba(16,185,129,0.2); } .ds-badge-denied { background: rgba(239,68,68,0.1); color: #ef4444; border-color: rgba(239,68,68,0.2); } .ds-badge-flagged { background: rgba(245,158,11,0.1); color: #f59e0b; border-color: rgba(245,158,11,0.2); }"
+    },
+    {
+      "name": "Agent Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Per-agent spend card with progress bar.",
+      "html": "<div class=\"ds-card\"><div style=\"display:flex;justify-content:space-between;margin-bottom:0.5rem\"><h3 style=\"font-size:1rem\">Grocery Agent</h3><span class=\"ds-badge\" style=\"background:rgba(255,255,255,0.1);color:#a1a1aa;border:none\">grocery</span></div><div style=\"display:flex;justify-content:space-between;font-size:0.875rem;margin-bottom:0.5rem\"><span style=\"color:#a1a1aa\">Spend Cap</span><span style=\"font-family:'JetBrains Mono',monospace\">$450.00 / $500.00</span></div><div style=\"width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:9999px;overflow:hidden\"><div style=\"height:100%;width:90%;border-radius:9999px;background:#10b981;transition:width 0.3s,background-color 0.3s\"></div></div></div>",
+      "css": ".ds-card { background: rgba(24,24,27,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem; }"
+    },
+    {
+      "name": "Audit Trail Entry",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Individual transaction feed item in the sidebar.",
+      "html": "<div class=\"ds-audit-entry\"><div style=\"display:flex;justify-content:space-between;margin-bottom:0.25rem\"><span style=\"font-weight:500;font-size:0.875rem\">Travel Agent</span><span class=\"ds-badge ds-badge-allowed\">allowed</span></div><div style=\"display:flex;justify-content:space-between;font-size:0.875rem;color:#a1a1aa\"><span>travel &bull; <span style=\"font-family:'JetBrains Mono',monospace\">$328.17</span></span><span style=\"font-family:'JetBrains Mono',monospace;font-size:0.75rem\">3:08:05 AM</span></div></div>",
+      "css": ".ds-audit-entry { padding: 0.75rem; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); animation: slideIn 0.3s ease-out forwards; } @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }"
+    },
+    {
+      "name": "Progress Bar",
+      "kind": "custom",
+      "refersTo": "progress-bar",
+      "description": "Spend cap utilization indicator.",
+      "html": "<div class=\"ds-progress-bg\"><div class=\"ds-progress-fill\" style=\"width:72%\"></div></div>",
+      "css": ".ds-progress-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 9999px; overflow: hidden; } .ds-progress-fill { height: 100%; border-radius: 9999px; background: #10b981; transition: width 0.3s ease, background-color 0.3s ease; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Watchtower",
+    "overview": "A real-time oversight dashboard built for command, not decoration. Like a Bloomberg terminal reimagined for AI governance — the interface is dark, dense with signal, and every pixel has a job. The Watchtower watches the agent fleet, surfaces anomalies instantly, and puts a single definitive action (the kill switch) within arm's reach at all times.\n\nThe system rejects generic SaaS admin patterns (identical card grids, sidebar nav tropes) and fintech navy-and-gold clichés. Authority comes from restraint: near-black backgrounds, minimal color reserved for semantic states, and typography that lets data breathe. Glassmorphism is used sparingly — only for container surfaces where depth separation clarifies hierarchy.",
+    "keyCharacteristics": [
+      "Data-first density: Information is scannable, not overwhelming. The audit trail is a feed, not a spreadsheet.",
+      "Semantic color language: Green = allowed, red = denied, orange = flagged. Amber accent denotes system governance controls. Color never decorates — it communicates.",
+      "Instant feedback: Interactive elements respond with zero perceived latency. State changes (hover, active, kill-switch toggle) are visibly acknowledged within 150-200ms.",
+      "Bloomberg-inspired depth: Dark gradient backgrounds create ambient atmosphere. Glass panels provide subtle surface separation without visual clutter."
+    ],
+    "rules": [
+      { "name": "The Authority Through Restraint Rule", "body": "Amber accent appears on <=5% of any given screen. Its rarity is the signal. Semantic colors (green/red/orange) dominate the visible palette because they convey actual system state — decoration never competes with data.", "section": "colors" },
+      { "name": "The One Family Rule", "body": "No display fonts, no serif pairings. Inter + JetBrains Mono is the complete vocabulary. Variation comes from weight (400/500/600/700) and size, not font switching.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. The only elevation is the glass-panel backdrop-filter for cards and containers. No drop shadows on cards. Shadows appear only on stateful elements (hover, kill-switch glow).", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use semantic color to communicate system state. Green = allowed/all good, red = denied/critical, orange = flagged/warning.",
+      "Do keep the amber accent rare (<=5% of screen area). Its scarcity is what makes it read as governance brand, not decoration.",
+      "Do use JetBrains Mono for every monetary value, agent ID, and timestamp. This is non-negotiable for data legibility.",
+      "Do animate interactive state changes (hover, active, kill-switch toggle) within 150-200ms with smooth easing.",
+      "Do use glass-panel surfaces for card/container depth instead of drop shadows. Keep the Bloomberg-terminal layered feel.",
+      "Do translate buttons down (translateY(1px)) on press for tactile confirmation."
+    ],
+    "donts": [
+      "Don't use gradient text beyond the single title element. The text-accent class is reserved for the Codestreet Governance heading only.",
+      "Don't use glassmorphism on more than 60% of any screen. Glass is a container surface, not a page-wide aesthetic.",
+      "Don't add decorative motion. No spinning loaders in content areas, no orchestrated page-entrance sequences, no parallax.",
+      "Don't use display fonts in UI labels, buttons, or data. Inter + JetBrains Mono is the complete vocabulary.",
+      "Don't use blue-and-gold as a color scheme. This is not generic fintech. The palette is near-black, semantic green/red/orange, and a rare amber accent.",
+      "Don't side-stripe borders. No border-left: 3px solid colored accents on cards or list items. Use full borders, background tints, or nothing.",
+      "Don't over-round corners. Cards top out at 12px; buttons at 8px. Pill shapes are for badges only."
+    ]
+  }
+}

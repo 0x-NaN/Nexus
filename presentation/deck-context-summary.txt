@@ -1,0 +1,103 @@
+CONTEXT FOR BUILDING A PITCH DECK (PDF or PPTX)
+Codestreet 2026 Hackathon — Round 1 Presentation
+Theme 5: Governance Layer for Financial Agents
+Project name: Nexus
+Team: Solo (0x-NaN, Team Leader:Asmit Chatterjee)
+
+===================================================================
+PURPOSE OF THIS DECK
+===================================================================
+This is the mandatory "Presentation" attachment for Round 1 submission, alongside a separate written project description (already submitted as text). The written description is long-form and detailed; this deck should be a tighter, visual walkthrough of the same material — the kind of thing that could be presented out loud in a few minutes, not read silently. Assume judges will skim it fast. Prioritize clarity and visual hierarchy over density.
+
+Round 1 does not require a working prototype, but we have one — this should be reflected as a strength, not undersold.
+
+===================================================================
+PROBLEM STATEMENT (THEME 5, VERBATIM CONTEXT)
+===================================================================
+As autonomous AI agents multiply across financial services, there's no standard safety infrastructure to govern them: no granular permissions, no dynamic spend enforcement, no way to instantly shut down a misbehaving fleet, and no audit trail that would hold up to a regulator. A single compromised or malfunctioning agent could execute unauthorized transactions faster than any human would notice. This infrastructure is the foundation that makes trustworthy agent deployment possible.
+
+===================================================================
+PROJECT SUMMARY — WHAT NEXUS IS
+===================================================================
+Nexus is a real-time governance layer that sits between an autonomous agent and the transaction it's trying to execute. Every transaction request is evaluated against policy before being allowed through. A human operator can instantly halt every agent in the fleet with a single kill switch. Every decision — allowed, denied, or flagged — is permanently logged with a stated reason and can be exported as CSV.
+
+===================================================================
+CORE FEATURES (use as main content slides, one concept per slide ideally)
+===================================================================
+
+1. TWO-TIER SPEND CAP ENFORCEMENT
+Each agent has a maximum spend cap. At 90% of the cap, a transaction is allowed but flagged (early warning, visible risk). At 100% of the cap, the transaction is denied outright. This surfaces risk building up before it becomes an actual violation, rather than a single hard cutoff with no warning.
+
+2. SCOPE ENFORCEMENT
+Each agent is locked to one allowed transaction category (e.g. a Grocery Agent can only transact in "grocery"). Any attempt outside its category is denied and logged as "off-scope."
+
+3. BURST / RATE-LIMIT DETECTION
+If an agent fires transactions abnormally fast in a short window, that pattern alone is caught and denied — even if individual transaction amounts look fine. Protects against a compromised or malfunctioning agent moving fast, not just spending big.
+
+4. GLOBAL KILL SWITCH
+One control halts every agent's ability to transact, instantly, fleet-wide. The halt itself is written to the audit log as its own permanent event (not a mutable flag that could be silently changed) — so there's always a record of exactly when and that it was triggered.
+
+5. IMMUTABLE, EXPORTABLE AUDIT TRAIL
+Every transaction attempt — regardless of outcome — is permanently logged with a timestamped reason. Exportable as CSV for compliance/regulatory review.
+
+6. POLICY RULES ARE NOT RUNTIME-EDITABLE (deliberate design choice — worth its own slide, this is a differentiator)
+Policy rules live in a config file loaded once at startup. There is no API or UI path to change them while the system is running. Framing: "a governance layer that can rewrite its own rules on the fly isn't really governance" — this closes off a real security/tampering risk (insider threat, prompt injection, compromised admin session) that most teams building an editable admin panel would leave open.
+
+7. PROVEN AGENT-AGNOSTICISM (this is the standout technical proof point — give it real visual weight)
+Most of the simulated fleet (4 of 5 agents) runs on scripted mock transactions for demo determinism. One agent — the Travel Agent — is genuinely driven by a real local LLM (Qwen2.5:3b via Ollama, running locally, no external API, no cost, no network dependency). It generates its own transaction requests from scenario prompts and submits them through the EXACT SAME evaluation endpoint as every scripted agent, with zero special-case handling in the policy engine.
+Result: the LLM has organically attempted off-scope and overspend transactions it was never explicitly scripted to make, and been correctly denied by the same policy engine. When the LLM returns malformed output (bad JSON, markdown-wrapped response, missing field), that's treated as its own governance-relevant failure — denied and logged as "malformed_agent_payload," not silently retried or auto-corrected.
+Why this matters: this converts "our system is agent-agnostic" from an architectural claim into something empirically demonstrated with a real, non-deterministic model.
+
+===================================================================
+SYSTEM ARCHITECTURE (good candidate for one diagram slide)
+===================================================================
+Flow: Agent Fleet (mostly simulated, one real local LLM) → Policy Engine → Event Log (Postgres, append-only) → WebSocket broadcast → Dashboard (agent cards, live feed, kill switch, CSV export)
+
+Policy evaluation order inside the Policy Engine (sequential, first deny wins, a flag does not stop evaluation):
+kill_switch check → scope_check → spend_cap check → burst_detection
+
+Tech stack:
+- Backend: FastAPI (Python), async
+- Database: PostgreSQL, append-only event log design
+- Real-time: WebSockets, server-push only (no polling/manual refresh)
+- Frontend: React (Vite)
+- Config: YAML, startup-loaded, not runtime-editable
+- Local LLM: Ollama, Qwen2.5:3b, running on local GPU
+
+===================================================================
+VISUAL / SCREENSHOT MATERIAL AVAILABLE
+===================================================================
+We have real screenshots of the working dashboard that could be embedded:
+- Live agent fleet view (5 agent cards with spend caps/progress bars)
+- Live audit trail feed showing ALLOWED / DENIED / FLAGGED entries with reasons
+- SIM vs LLM source badges visible on audit trail entries (this visually proves the agent-agnostic claim — worth a dedicated slide/callout)
+- Kill switch button and its "halted" state
+- An example of a burst-detection denial sequence
+- An example of a malformed LLM payload being denied
+If the deck-building LLM wants placeholder/mockup slides where real screenshots would go, that's fine — just leave clearly marked space, we will insert the actual screenshots ourselves before final submission.
+
+===================================================================
+DESIGN LANGUAGE (for visual consistency with the actual product, optional but nice to have)
+===================================================================
+The actual dashboard uses a dark theme: near-black background, amber/gold accent color, semantic colors for status (green = allowed, red = denied, orange = flagged). Typography: Inter for UI text, JetBrains Mono for all monetary values/timestamps/IDs. Overall tone: "precise, authoritative, restrained" — not generic SaaS, not flashy. If the deck can loosely echo this (dark background, amber accent, clean sans-serif), that would tie the presentation visually to the product itself. Not mandatory if the deck tool has its own default template — content clarity matters more than exact visual matching.
+
+===================================================================
+SUGGESTED SLIDE STRUCTURE (adjust as needed, ~10-12 slides for a Round 1 deck)
+===================================================================
+1. Title slide — "Nexus" + theme + one-line tagline (e.g. "A real-time governance layer for autonomous financial agents")
+2. Problem statement — the risk of ungoverned autonomous agents in finance
+3. Proposed solution — what Nexus is, one sentence + the core flow diagram
+4. Feature: Two-tier spend cap enforcement
+5. Feature: Scope enforcement + burst detection
+6. Feature: Global kill switch + immutable audit trail
+7. Design choice: policy rules are not runtime-editable (why this matters for security)
+8. Standout proof: the real local LLM agent, agent-agnostic architecture demonstrated empirically
+9. Architecture / tech stack diagram
+10. Success metrics / what's been verified in testing
+11. Scalability considerations (brief — stateless policy engine, pub/sub extension path, config-driven rule changes)
+12. Closing — current status (working prototype, ready to demo), invite to see it live
+
+===================================================================
+TONE NOTES
+===================================================================
+Confident but not oversold. We are transparent that 4 of 5 agents are simulated and this hasn't been load-tested at production scale — don't claim otherwise. The differentiators to lean on are: real (if partial) LLM integration proof, the deliberate non-runtime-editable policy design, and having an actual working prototype ahead of what Round 1 requires. Avoid generic hackathon-deck filler language ("revolutionary," "game-changing," "seamless synergy") — keep it grounded and specific, matching the tone of an engineer who actually built and tested this, not a marketing pitch.

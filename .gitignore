@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Virtual environments
+backend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.sqlite
+*.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Test artifacts
+*.csv
+audit_log.csv
+
+# Scratch/dev scripts
+backend/scratch/
+
+# Presentation build artifacts
+presentation/*.pdf
+presentation/*.pptx
+!presentation/nexus-deck.md
+!presentation/deck-context-summary.txt
+!presentation/*.jpg
+!presentation/*.png
+
+# Environment files
+*.env
+!.env.example

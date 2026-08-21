@@ -1,0 +1,192 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg-primary: #09090b;
+  --bg-secondary: #18181b;
+  --bg-card: rgba(24, 24, 27, 0.6);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  
+  --brand-green: #10b981;
+  --brand-red: #ef4444;
+  --brand-orange: #f59e0b;
+  --brand-amber: #f59e0b;
+  --brand-amber-dim: rgba(245, 158, 11, 0.15);
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.25);
+  --shadow-glow-red: 0 0 15px rgba(239, 68, 68, 0.5);
+  --shadow-glow-green: 0 0 15px rgba(16, 185, 129, 0.2);
+  --shadow-glow-amber: 0 0 20px rgba(245, 158, 11, 0.15);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  background-image: 
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(245, 158, 11, 0.03) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 70% 20%, rgba(245, 158, 11, 0.02) 0%, transparent 60%);
+  background-attachment: fixed;
+}
+
+code, .mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+/* Utilities */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.text-accent {
+  color: var(--brand-amber);
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+/* Layout */
+.app-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .app-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.header {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 2rem;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Custom UI Components */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  font-family: inherit;
+  user-select: none;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-danger {
+  background: var(--brand-red);
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
+}
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+.btn-danger:active {
+  transform: translateY(1px);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.badge-allowed { background: rgba(16, 185, 129, 0.1); color: var(--brand-green); border: 1px solid rgba(16, 185, 129, 0.2); }
+.badge-denied { background: rgba(239, 68, 68, 0.1); color: var(--brand-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+.badge-flagged { background: rgba(245, 158, 11, 0.1); color: var(--brand-orange); border: 1px solid rgba(245, 158, 11, 0.2); }
+
+/* Progress Bar */
+.progress-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}

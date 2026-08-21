@@ -1,0 +1,65 @@
+============================================================
+  NEXUS — CHANGES LOG (v2, refactor phase)
+  Append-only. One entry per meaningful work session.
+  Format: [TIMESTAMP IST] — DESCRIPTION
+============================================================
+
+[2026-08-21] — PROJECT RECOVERED + REFACTOR SCOPED
+
+  Status: Original hackathon folder (Codestreet 2026 / AmEx) accidentally deleted,
+  then recovered. No rebuild required. Refactoring existing codebase toward
+  an industry-level open-source MVP rather than rebuilding from scratch.
+
+  Codestreet 2026 outcome: not shortlisted past Round 1.
+  Competition scale: 15,600 registrations, 6 advancing teams.
+  Decision: evolve Nexus as a real project rather than treating the outcome as terminal.
+
+  Decisions locked this session (all Ash-originated):
+
+  1. PHASE 1 ADDITIONS (alongside refactor, not after):
+     - Auth: JWT/OIDC (real multi-user support — was single-operator demo only)
+     - CI/CD: GitHub Actions (lint/test on push)
+     - MCP tooling for OpenCode: Filesystem, Git, GitHub, PostgreSQL, Docker MCPs
+     - LLM degradation tiers: hosted API primary → Ollama fallback → scripted last resort
+     - motion.dev: functional motion only (see motion-design.md)
+
+  2. PHASE 2 ADDITIONS (after Phase 1 stable):
+     - Observability: OpenTelemetry, Prometheus, Grafana, structured JSON logging,
+       health/readiness endpoints, correlation IDs
+
+  3. NOVELTY FEATURES (parked, in priority order for later):
+     1. Dry-run / policy impact simulation
+     2. LLM-powered decision narration
+     3. Adaptive anomaly detection
+     4. Agent trust score
+     5. Policy version history
+
+  4. EXPLICITLY REJECTED (do not re-litigate):
+     - Redis: no multi-instance problem yet; stays as future scaling path
+     - n8n: no workflow-automation need in Nexus's architecture
+     - motion.dev decorative animation: functional only per motion-design.md
+     - Kubernetes/Kafka/microservices: premature
+
+  5. LLM DEGRADATION TIERS (replaces offline-only approach):
+     - Primary: hosted LLM API (env var API key)
+     - Fallback: local Ollama (qwen2.5:3b) on timeout/error
+     - Last resort: scripted generator (system stays functional, loses LLM proof point)
+     - source field in DB/UI updated to reflect: llm-hosted / llm-local / sim
+
+  6. KNOWN OPEN ISSUE carried forward:
+     - Burst detection reliability (~50% catch rate): suspected sequential vs.
+       concurrent firing race condition in injector. Should be fixed properly
+       in this refactor, not worked around again.
+
+  New files created this session:
+     - context.md (living current-state reference — edit, don't just append)
+     - motion-design.md (motion.dev scope and constraints)
+     - changes_log.txt (this file — replace old one at project root)
+     - nexus-rebuild-spec.md (full technical spec, now superseded by context.md
+       for ongoing reference — keep as historical archive)
+
+  NEXT: initialize git repo (if not already done), commit all existing code,
+  then begin Phase 1 additions in dependency order:
+  MCP tooling setup → LLM degradation tiers → Auth → CI/CD → motion.dev
+
+------------------------------------------------------------

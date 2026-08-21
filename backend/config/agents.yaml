@@ -1,0 +1,66 @@
+# =============================================================
+# Kill Switch | Codestreet 2026
+# config/agents.yaml
+#
+# Agent fleet definition. Loaded at startup by both:
+#   - The Policy Engine (to seed/validate the agents table)
+#   - The Transaction Simulator (to know the agent pool + normal ranges)
+#
+# NOT runtime-editable. Requires restart to take effect.
+# Changes here must be mirrored in db/seed.sql.
+# =============================================================
+
+agents:
+  - id: agent_001
+    name: "Grocery Agent"
+    category: grocery
+    spend_cap: 500.00
+    rate_limit: 10          # max transactions per minute; null = no burst limit
+    normal_range:
+      min: 15.00
+      max: 120.00
+
+  - id: agent_002
+    name: "Subscription Agent"
+    category: subscription
+    spend_cap: 200.00
+    rate_limit: null
+    normal_range:
+      min: 9.00
+      max: 50.00
+
+  - id: agent_003
+    name: "Travel Agent"
+    category: travel
+    spend_cap: 1500.00
+    rate_limit: 5
+    normal_range:
+      min: 80.00
+      max: 600.00
+
+  - id: agent_004
+    name: "Dining Agent"
+    category: dining
+    spend_cap: 300.00
+    rate_limit: 8
+    normal_range:
+      min: 20.00
+      max: 90.00
+
+  - id: agent_005
+    name: "Office Supplies Agent"
+    category: office
+    spend_cap: 250.00
+    rate_limit: null
+    normal_range:
+      min: 10.00
+      max: 80.00
+
+# Valid categories (must be exhaustive — used by off_scope injector
+# to pick a category that is NOT the agent's own)
+all_categories:
+  - grocery
+  - subscription
+  - travel
+  - dining
+  - office
