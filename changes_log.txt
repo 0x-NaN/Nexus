@@ -160,3 +160,30 @@ MCP tooling setup → LLM degradation tiers → Auth → CI/CD → motion.dev
     - System continues running normally, no dashboard errors
 
   NEXT: Auth (JWT/OIDC)
+
+------------------------------------------------------------
+
+[2026-08-22] — SETUP GUIDE + LLM TEST PANEL + PRODUCTION DOCKER
+
+  Files created:
+  - SETUP_AND_RUN_GUIDE.md — Comprehensive local dev + production Docker guide
+
+  Files changed:
+  - backend/app/routers/simulator.py — Added /simulator/test-llm endpoint (hosted, ollama, scripted, auto)
+  - frontend/src/App.jsx — Added LLM Degradation Test Panel to Simulator Debug section
+  - frontend/src/index.css — Added animate-spin for loading spinner
+
+  Changes:
+  - Production-ready docker-compose.yml with postgres, backend, frontend, ollama (GPU profile)
+  - Dockerfile for backend (Python 3.12 slim) and frontend (nginx + Vite build)
+  - nginx.conf for frontend with /api and /ws proxy to backend
+  - LLM test endpoint: test tiers individually or auto (hosted → ollama → scripted)
+  - Frontend test panel: dropdown tier selector, custom scenario input, results display with source badges
+
+  Test results:
+  - /simulator/test-llm with tier=ollama: PASSED — returns llm-local transactions
+  - /simulator/test-llm with tier=hosted: PASSED — returns "Hosted API unavailable" (no token)
+  - /simulator/test-llm with tier=scripted: PASSED — returns sim transaction
+  - Frontend test panel renders and communicates with backend
+
+  NEXT: Auth (JWT/OIDC)

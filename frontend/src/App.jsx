@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AlertCircle, ShieldAlert, ShieldCheck, Activity, TerminalSquare, Search, Zap } from 'lucide-react';
+import { AlertCircle, ShieldAlert, ShieldCheck, Activity, TerminalSquare, Search, Zap, FlaskConical, Cloud, Server, Cpu, RotateCcw } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
 const WS_BASE = 'ws://localhost:8000/ws';
@@ -80,6 +80,30 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ agent_id: null, misbehavior_type: type })
     });
+  };
+
+  // LLM Degradation Test Panel State
+  const [llmTestResult, setLlmTestResult] = useState(null);
+  const [llmTestLoading, setLlmTestLoading] = useState(false);
+  const [llmTestTier, setLlmTestTier] = useState('auto');
+  const [llmTestScenario, setLlmTestScenario] = useState('');
+
+  const runLlmTest = async (tier) => {
+    setLlmTestLoading(true);
+    setLlmTestResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/simulator/test-llm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier, scenario: llmTestScenario || undefined })
+      });
+      const data = await res.json();
+      setLlmTestResult(data);
+    } catch (e) {
+      setLlmTestResult({ error: `Request failed: ${e.message}`, tier_succeeded: null });
+    } finally {
+      setLlmTestLoading(false);
+    }
   };
 
   const isKilled = killSwitchState === 'killed';
@@ -186,6 +210,117 @@ export default function App() {
             <button className="btn btn-outline" onClick={() => triggerMisbehavior('burst')} style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
               <Activity size={14} color="var(--brand-red)" /> Burst
             </button>
+          </div>
+        </section>
+
+        {/* LLM Degradation Test Panel */}
+        <section className="glass-panel" style={{ padding: '1.25rem' }}>
+          <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FlaskConical size={18} />
+            LLM Degradation Test Panel
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                Tier:
+                <select 
+                  value={llmTestTier} 
+                  onChange={(e) => setLlmTestTier(e.target.value)}
+                  disabled={llmTestLoading}
+                  className="btn btn-outline"
+                  style={{ padding: '0.35rem 0.7rem', fontSize: '0.75rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '8px' }}
+                >
+                  <option value="auto">Auto (Hosted → Ollama → Scripted)</option>
+                  <option value="hosted">Hosted API Only (HuggingFace)</option>
+                  <option value="ollama">Local Ollama Only</option>
+                  <option value="scripted">Scripted Fallback Only</option>
+                </select>
+              </label>
+              <input
+                type="text"
+                placeholder="Custom scenario (optional)"
+                value={llmTestScenario}
+                onChange={(e) => setLlmTestScenario(e.target.value)}
+                disabled={llmTestLoading}
+                style={{ flex: 1, minWidth: '200px', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
+              />
+              <button 
+                className="btn btn-danger"
+                onClick={() => runLlmTest(llmTestTier)}
+                disabled={llmTestLoading}
+                style={{ width: 'fit-content' }}
+              >
+                {llmTestLoading ? <RotateCcw size={16} className="animate-spin" /> : <FlaskConical size={16} />} Test
+              </button>
+            </div>
+
+            {llmTestResult && (
+              <div style={{ 
+                padding: '1rem', 
+                borderRadius: '8px', 
+                background: llmTestResult.tier_succeeded ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                border: `1px solid ${llmTestResult.tier_succeeded ? 'var(--brand-green)' : 'var(--brand-red)'}`
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                    Tier Attempted: <code style={{ color: 'var(--brand-orange)' }}>{llmTestResult.tier_attempted}</code>
+                  </span>
+                  <span style={{ 
+                    padding: '0.15rem 0.5rem', 
+                    borderRadius: '4px', 
+                    fontSize: '0.7rem', 
+                    fontWeight: 800,
+                    background: llmTestResult.tier_succeeded ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                    color: llmTestResult.tier_succeeded ? 'var(--brand-green)' : 'var(--brand-red)'
+                  }}>
+                    {llmTestResult.tier_succeeded ? `Succeeded: ${llmTestResult.tier_succeeded}` : 'FAILED'}
+                  </span>
+                </div>
+                
+                {llmTestResult.error && (
+                  <div style={{ color: 'var(--brand-red)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                    Error: {llmTestResult.error}
+                  </div>
+                )}
+
+                {llmTestResult.transactions && llmTestResult.transactions.length > 0 && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    <strong>Generated Transactions ({llmTestResult.transactions.length}):</strong>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem' }}>
+                      {llmTestResult.transactions.map((tx, i) => (
+                        <div key={i} style={{ display: 'flex', gap: '1rem', fontFamily: 'monospace' }}>
+                          <span>${parseFloat(tx.amount).toFixed(2)}</span>
+                          <span>{tx.category}</span>
+                          <span style={{ 
+                            padding: '0.1rem 0.4rem', 
+                            borderRadius: '4px', 
+                            fontSize: '0.6rem',
+                            background: tx.source === 'llm-hosted' ? 'rgba(245, 158, 11, 0.2)' : 
+                                     tx.source === 'llm-local' ? 'rgba(245, 158, 11, 0.2)' : 
+                                     'rgba(255,255,255,0.06)',
+                            color: tx.source === 'sim' ? '#71717a' : '#fbbf24',
+                            border: tx.source === 'sim' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(245, 158, 11, 0.4)'
+                          }}>
+                            {tx.source === 'llm-hosted' ? 'LLM ☁' : tx.source === 'llm-local' ? 'LLM' : 'SIM'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {llmTestResult.raw_response && (
+                  <details style={{ marginTop: '1rem' }}>
+                    <summary style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                      Raw Response (truncated)
+                    </summary>
+                    <pre style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', fontSize: '0.65rem', overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+                      {llmTestResult.raw_response}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
           </div>
         </section>
 

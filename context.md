@@ -46,7 +46,7 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 | Auth | None (single-operator, demo) | JWT/OIDC |
 | Observability | None | OpenTelemetry + Prometheus + Grafana (Phase 2) |
 | CI/CD | None | GitHub Actions (Phase 1) |
-| Deployment | Local only | Docker Compose |
+| Deployment | Local only | Docker Compose (documented in SETUP_AND_RUN_GUIDE.md) |
 | Dev tooling | OpenCode (blind) | + Filesystem/Git/GitHub/PostgreSQL/Docker MCP |
 | MCP servers (configured) | — | filesystem, git (@cyanheads/git-mcp-server), github, postgres (@yawlabs/postgres-mcp), docker |
 
@@ -105,7 +105,8 @@ Graceful degradation: the policy engine doesn't care which tier generated the re
 - `changes_log.txt` — append-only historical record; log every session with timestamp, files touched, decisions, test results, NEXT line
 - `PRODUCT.md` — product definition, user profiles, design principles (updated: primary user is now small-org operators, not hackathon judges)
 - `DESIGN.md` — design system spec (known discrepancy: originally specced purple accent, actual implementation uses amber/gold; update to match reality during this refactor)
-- `motion-design.md` — NEW file to be created (see below)
+- `motion-design.md` — Motion policy (functional only)
+- `SETUP_AND_RUN_GUIDE.md` — Local dev + production Docker deployment guide
 
 ---
 
