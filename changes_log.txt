@@ -129,3 +129,34 @@ MCP tooling setup → LLM degradation tiers → Auth → CI/CD → motion.dev
   All 5 MCPs verified functional. Ready for Phase 1 refactor work.
 
   NEXT: LLM degradation tiers (hosted API primary → Ollama fallback → scripted last resort)
+
+------------------------------------------------------------
+
+[2026-08-22] — PHASE 1: LLM DEGRADATION TIERS COMPLETE
+
+  Files changed:
+  - backend/app/simulator/llm_agent.py — Three-tier degradation system
+  - backend/app/models.py — Added LLMSource enum (sim, llm-hosted, llm-local)
+  - backend/db/migrations/001_source_column_update.sql — DB migration for source column
+  - frontend/src/App.jsx — Updated source badge rendering (SIM / LLM / LLM ☁)
+  - backend/.env — Added HF_API_TOKEN and PGPASSWORD
+
+  Changes:
+  - Three-tier LLM degradation: llm-hosted (HF API) → llm-local (Ollama) → sim (scripted)
+  - source column updated: CHECK constraint now allows 'sim', 'llm-hosted', 'llm-local'
+  - Existing 'llm' rows migrated to 'llm-local' (no existing data in table)
+  - Malformed payload handling unchanged — denied + logged per tier, no fallback on parse failure
+  - Frontend badge: gray SIM / amber LLM (local) / amber LLM☁ (hosted)
+  - OLLAMA_MODEL updated to qwen14b-opencode:latest (available locally)
+
+  Test results:
+  - Test 1 (Hosted tier): NOT TESTED — requires valid HF_API_TOKEN (code in place, skips silently if unset)
+  - Test 2 (Ollama fallback): PASSED — HF_API_TOKEN unset, Ollama running with qwen14b-opencode:latest
+    - 10 transactions with source='llm-local' recorded in DB
+    - Logs show: "[LLM] Hosted API unavailable — falling back to Ollama" → "[LLM] Ollama success (N txs)"
+  - Test 3 (Last resort): PASSED — HF_API_TOKEN unset, Ollama stopped
+    - Transactions fall back to source='sim' with WARNING log
+    - Logs show: "[LLM] Ollama unavailable — falling back to scripted generator" → "[LLM] All LLM tiers unavailable — Travel Agent using scripted generator"
+    - System continues running normally, no dashboard errors
+
+  NEXT: Auth (JWT/OIDC)

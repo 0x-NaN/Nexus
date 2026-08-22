@@ -208,7 +208,9 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                   <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>
                     {tx.agent_name || tx.agent_id}
-                    {tx.source === 'llm' ? (
+                    {tx.source === 'llm-hosted' ? (
+                      <span style={{ marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.55rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.04em', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', verticalAlign: 'middle' }}>LLM ☁</span>
+                    ) : tx.source === 'llm-local' ? (
                       <span style={{ marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.55rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.04em', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', verticalAlign: 'middle' }}>LLM</span>
                     ) : (
                       <span style={{ marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.55rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.06)', color: '#71717a', border: '1px solid rgba(255,255,255,0.1)', verticalAlign: 'middle' }}>SIM</span>

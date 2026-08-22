@@ -30,6 +30,12 @@ class MisbehaviorType(str, Enum):
     random    = "random"  # only valid in inject request; resolved before logging
 
 
+class LLMSource(str, Enum):
+    sim          = "sim"
+    llm_hosted   = "llm-hosted"
+    llm_local    = "llm-local"
+
+
 class AgentStatus(str, Enum):
     active = "active"
     halted = "halted"
@@ -63,7 +69,7 @@ class TransactionIn(BaseModel):
     category:               str
     is_injected_misbehavior: bool    = False
     misbehavior_type:       Optional[MisbehaviorType] = None
-    source:                 str     = "sim"
+    source:                 LLMSource = LLMSource.sim
 
 
 class TransactionOut(BaseModel):
@@ -77,7 +83,7 @@ class TransactionOut(BaseModel):
     reason:                 Optional[str]
     is_injected_misbehavior: bool
     misbehavior_type:       Optional[str]
-    source:                 str     = "sim"
+    source:                 LLMSource = LLMSource.sim
 
     class Config:
         from_attributes = True

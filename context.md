@@ -74,8 +74,8 @@ Graceful degradation: the policy engine doesn't care which tier generated the re
 ### Phase 1 — alongside this refactor
 - [ ] Auth (JWT/OIDC) — real multi-user support
 - [ ] GitHub Actions CI/CD — lint/test on push
-- [ ] MCP tooling for OpenCode (Filesystem, Git, GitHub, PostgreSQL, Docker MCPs)
-- [ ] LLM degradation tiers (hosted primary → Ollama fallback → scripted last resort)
+- [x] MCP tooling for OpenCode (Filesystem, Git, GitHub, PostgreSQL, Docker MCPs)
+- [x] LLM degradation tiers (hosted primary → Ollama fallback → scripted last resort)
 - [ ] motion.dev integration (functional motion only — see motion-design.md)
 
 ### Phase 2 — after Phase 1 is stable

@@ -12,8 +12,10 @@ from app.models import TransactionIn
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-MODEL = "qwen2.5:3b"
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "qwen14b-opencode:latest"
+
+HF_API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
 
 TRAVEL_AGENT_ID = "agent_003"
 
@@ -48,15 +50,19 @@ def _pick_scenario() -> str:
     return rnd.choices(_choices, weights=_weights, k=1)[0]
 
 
-def _build_payload(scenario: str) -> dict:
+def _build_ollama_payload(scenario: str) -> dict:
     return {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": scenario},
-        ],
+        "model": OLLAMA_MODEL,
+        "prompt": f"{SYSTEM_PROMPT}\n\nUser: {scenario}\n\nAssistant:",
         "stream": False,
         "options": {"temperature": 0.7, "max_tokens": 1024},
+    }
+
+
+def _build_hf_payload(scenario: str) -> dict:
+    return {
+        "inputs": f"{SYSTEM_PROMPT}\n\nUser: {scenario}\n\nAssistant:",
+        "parameters": {"temperature": 0.7, "max_new_tokens": 1024, "return_full_text": False},
     }
 
 
@@ -94,7 +100,7 @@ def _parse_transactions(raw_json: str) -> Optional[list[dict]]:
     return data
 
 
-async def _insert_denied_malformed(raw_response: str):
+async def _insert_denied_malformed(raw_response: str, source: str):
     from app.database import database
     from app.ws_manager import manager
 
@@ -125,7 +131,7 @@ async def _insert_denied_malformed(raw_response: str):
             "reason":      "malformed_agent_payload",
             "is_injected": False,
             "mtype":       None,
-            "source":      "llm",
+            "source":      source,
         },
     )
 
@@ -142,42 +148,82 @@ async def _insert_denied_malformed(raw_response: str):
             "reason": "malformed_agent_payload",
             "is_injected_misbehavior": False,
             "misbehavior_type": None,
-            "source": "llm",
+            "source": source,
         },
     })
-    logger.warning("[LLM] Response FAILED -- malformed_agent_payload (inserted denied entry)")
+    logger.warning(f"[LLM] Response FAILED -- malformed_agent_payload (inserted denied entry, source={source})")
 
 
-async def fetch_llm_transactions() -> list[TransactionIn]:
-    scenario = _pick_scenario()
-    logger.info(f"[LLM] Calling Ollama ({MODEL}) for Travel Agent -- {scenario[:70]}...")
+async def _call_hf_api(scenario: str) -> Optional[str]:
+    """Call HuggingFace Inference API. Returns raw response text or None on failure."""
+    import os
+    hf_token = os.getenv("HF_API_TOKEN")
+    if not hf_token:
+        return None
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.post(
+                HF_API_URL,
+                json=_build_hf_payload(scenario),
+                headers={"Authorization": f"Bearer {hf_token}"},
+            )
+            if resp.status_code == 429:
+                logger.warning("[LLM] Hosted API rate limited (429)")
+                return None
+            resp.raise_for_status()
+            body = resp.json()
+            if isinstance(body, list) and len(body) > 0:
+                return body[0].get("generated_text", "")
+            elif isinstance(body, dict):
+                return body.get("generated_text", "") or body.get("error", "")
+            return ""
+    except httpx.TimeoutException:
+        logger.warning("[LLM] Hosted API timeout")
+        return None
+    except httpx.HTTPStatusError as e:
+        logger.warning(f"[LLM] Hosted API HTTP error: {e.response.status_code}")
+        return None
+    except Exception as e:
+        logger.warning(f"[LLM] Hosted API error: {e}")
+        return None
+
+
+async def _call_ollama(scenario: str) -> Optional[str]:
+    """Call local Ollama. Returns raw response text or None on failure."""
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
                 OLLAMA_URL,
-                json=_build_payload(scenario),
+                json=_build_ollama_payload(scenario),
             )
             resp.raise_for_status()
             body = resp.json()
-            content = body.get("message", {}).get("content", "")
+            return body.get("response", "")
+    except httpx.TimeoutException:
+        logger.warning("[LLM] Ollama timeout")
+        return None
+    except httpx.ConnectError:
+        logger.warning("[LLM] Ollama connection refused")
+        return None
+    except httpx.HTTPStatusError as e:
+        logger.warning(f"[LLM] Ollama HTTP error: {e.response.status_code}")
+        return None
     except Exception as e:
-        logger.error(f"[LLM] API call FAILED: {e}")
-        await _insert_denied_malformed(str(e))
-        return []
+        logger.warning(f"[LLM] Ollama error: {e}")
+        return None
 
-    if not content.strip():
-        logger.warning("[LLM] Empty response -- inserting denied entry")
-        await _insert_denied_malformed("(empty response)")
-        return []
 
-    cleaned = _strip_fences(content)
+async def _try_parse_and_build_txs(raw_response: str, source: str) -> Optional[list[TransactionIn]]:
+    """Parse response and build TransactionIn objects. Returns list on success, None on parse failure."""
+    if not raw_response or not raw_response.strip():
+        return None
+
+    cleaned = _strip_fences(raw_response)
     parsed = _parse_transactions(cleaned)
 
     if parsed is None:
-        logger.warning(f"[LLM] Response FAILED to parse -- raw:\n{content[:300]}")
-        await _insert_denied_malformed(content[:500])
-        return []
+        return None
 
     txs = []
     for item in parsed:
@@ -189,11 +235,71 @@ async def fetch_llm_transactions() -> list[TransactionIn]:
                 agent_id=TRAVEL_AGENT_ID,
                 amount=amount,
                 category=str(item["category"]),
-                source="llm",
+                source=source,
             ))
         except (ValueError, TypeError, KeyError) as e:
             logger.warning(f"[LLM] Skipping invalid item {item}: {e}")
             continue
 
-    logger.info(f"[LLM] Response received -- parsed OK ({len(txs)} transaction(s))")
-    return txs
+    return txs if txs else None
+
+
+async def fetch_llm_transactions() -> list[TransactionIn]:
+    """
+    Three-tier LLM degradation:
+    1. Hosted API (HuggingFace) -> source='llm-hosted'
+    2. Local Ollama -> source='llm-local'
+    3. Scripted generator -> source='sim'
+    """
+    scenario = _pick_scenario()
+    logger.info(f"[LLM] Travel Agent scenario: {scenario[:70]}...")
+
+    # --- Tier 1: Hosted API ---
+    hf_response = await _call_hf_api(scenario)
+    if hf_response is not None:
+        txs = await _try_parse_and_build_txs(hf_response, "llm-hosted")
+        if txs is not None:
+            logger.info(f"[LLM] Hosted API success ({len(txs)} txs)")
+            return txs
+        # Malformed response from hosted API - deny and log, do NOT fall back
+        await _insert_denied_malformed(hf_response, "llm-hosted")
+        return []
+
+    logger.info("[LLM] Hosted API unavailable — falling back to Ollama")
+
+    # --- Tier 2: Local Ollama ---
+    ollama_response = await _call_ollama(scenario)
+    if ollama_response is not None:
+        txs = await _try_parse_and_build_txs(ollama_response, "llm-local")
+        if txs is not None:
+            logger.info(f"[LLM] Ollama success ({len(txs)} txs)")
+            return txs
+        # Malformed response from Ollama - deny and log, do NOT fall back
+        await _insert_denied_malformed(ollama_response, "llm-local")
+        return []
+
+    logger.warning("[LLM] Ollama unavailable — falling back to scripted generator")
+
+    # --- Tier 3: Scripted generator (last resort) ---
+    logger.warning("[LLM] All LLM tiers unavailable — Travel Agent using scripted generator")
+    travel_agent = next(
+        (a for a in get_agent_definitions() if a["id"] == TRAVEL_AGENT_ID), None
+    )
+    if not travel_agent:
+        return []
+
+    amount = Decimal(str(round(rnd.uniform(
+        travel_agent["normal_range"]["min"],
+        travel_agent["normal_range"]["max"]
+    ), 2)))
+
+    return [TransactionIn(
+        agent_id=TRAVEL_AGENT_ID,
+        amount=amount,
+        category=travel_agent["category"],
+        source="sim",
+    )]
+
+
+# Import at module level to avoid circular import issues
+from app.config import get_agent_definitions
