@@ -1,8 +1,320 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AlertCircle, ShieldAlert, ShieldCheck, Activity, TerminalSquare, Search, Zap, FlaskConical, Cloud, Server, Cpu, RotateCcw } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  AlertCircle, ShieldAlert, ShieldCheck, Activity, TerminalSquare, 
+  Search, Zap, FlaskConical, RotateCcw, Wifi, WifiOff, Shield
+} from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
 const WS_BASE = 'ws://localhost:8000/ws';
+
+// ── Components ────────────────────────────────────────────────────────────────
+
+const Badge = ({ children, variant = 'neutral', className = '' }) => {
+  const variants = {
+    allowed: 'badge-allowed',
+    denied: 'badge-denied',
+    flagged: 'badge-flagged',
+    neutral: 'badge-neutral',
+    sim: 'badge-sim',
+    llm: 'badge-llm',
+    'llm-hosted': 'badge-llm-hosted',
+    'llm-local': 'badge-llm-local',
+  };
+  return (
+    <span className={`badge ${variants[variant]} ${className}`}>
+      {children}
+    </span>
+  );
+};
+
+const ProgressBar = ({ value, max = 100, flaggedThreshold = 90 }) => {
+  const pct = Math.min(100, (value / max) * 100);
+  const isFlagged = pct >= flaggedThreshold;
+  return (
+    <div className="progress-bg" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+      <motion.div
+        className={`progress-fill ${isFlagged ? 'flagged' : ''}`}
+        style={{ width: `${pct}%` }}
+        animate={{ width: `${pct}%` }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+      />
+    </div>
+  );
+};
+
+const AgentCard = ({ agent, isKilled }) => {
+  const cap = parseFloat(agent.spend_cap);
+  const spent = parseFloat(agent.spend_total) || 0;
+  const pct = Math.min(100, (spent / cap) * 100);
+  const isFlagged = pct >= 90;
+
+  return (
+    <motion.div
+      key={agent.id}
+      className="glass-panel agent-card"
+      animate={{ 
+        opacity: isKilled ? 0.5 : 1,
+        filter: isFlagged ? 'drop-shadow(0 0 8px var(--brand-red))' : 'none'
+      }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+    >
+      <div className="agent-card-header">
+        <h3 className="agent-card-name">{agent.name}</h3>
+        <Badge variant="neutral">{agent.category}</Badge>
+      </div>
+      
+      <div className="agent-card-spend">
+        <span className="label">Spend Cap</span>
+        <span className="mono">${spent.toFixed(2)} / ${cap.toFixed(2)}</span>
+      </div>
+      
+      <ProgressBar value={spent} max={cap} flaggedThreshold={cap * 0.9} />
+    </motion.div>
+  );
+};
+
+const KillSwitchButton = ({ isKilled, onClick, disabled }) => (
+  <motion.button
+    className="btn btn-kill-switch"
+    onClick={onClick}
+    disabled={disabled}
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+    animate={{
+      boxShadow: isKilled ? 'var(--shadow-glow-green)' : 'var(--shadow-glow-red)',
+      background: isKilled ? 'var(--brand-green)' : 'var(--brand-red)',
+    }}
+    transition={{ duration: 0.15 }}
+    style={{
+      background: isKilled ? 'var(--brand-green)' : 'var(--brand-red)',
+      boxShadow: isKilled ? 'var(--shadow-glow-green)' : 'var(--shadow-glow-red)',
+    }}
+  >
+    {isKilled ? (
+      <>
+        <ShieldCheck size={18} />
+        <span>RESTORE AGENTS</span>
+      </>
+    ) : (
+      <>
+        <AlertCircle size={18} />
+        <span>GLOBAL KILL SWITCH</span>
+      </>
+    )}
+  </motion.button>
+);
+
+const ConnectionStatus = ({ connected }) => (
+  <div className="connection-status" title={connected ? 'WebSocket connected' : 'WebSocket disconnected'}>
+    <span
+      className="connection-dot"
+      style={{
+        background: connected ? 'var(--brand-green)' : 'var(--brand-red)',
+        boxShadow: connected ? '0 0 8px var(--brand-green)' : 'none',
+      }}
+    />
+    <span className="label">{connected ? 'Connected (Live)' : 'Disconnected'}</span>
+  </div>
+);
+
+const SourceBadge = ({ source }) => {
+  if (source === 'llm-hosted') {
+    return <Badge variant="llm-hosted">LLM ☁</Badge>;
+  }
+  if (source === 'llm-local') {
+    return <Badge variant="llm-local">LLM</Badge>;
+  }
+  return <Badge variant="sim">SIM</Badge>;
+};
+
+const TransactionRow = ({ tx }) => (
+  <motion.div
+    key={tx.id}
+    className="transaction-row"
+    initial={{ opacity: 0, y: -10, height: 0 }}
+    animate={{ opacity: 1, y: 0, height: 'auto' }}
+    exit={{ opacity: 0, y: 10, height: 0 }}
+    transition={{ duration: 0.2, ease: 'easeOut' }}
+  >
+    <div className="transaction-header">
+      <div className="transaction-agent">
+        <span className="agent-name">{tx.agent_name || tx.agent_id}</span>
+        <SourceBadge source={tx.source} />
+      </div>
+      <Badge variant={tx.decision}>{tx.decision}</Badge>
+    </div>
+
+    <div className="transaction-meta">
+      <span>{tx.category} • <span className="mono">${parseFloat(tx.amount).toFixed(2)}</span></span>
+      <span className="mono timestamp">{new Date(tx.timestamp).toLocaleTimeString()}</span>
+    </div>
+
+    {tx.reason && (
+      <div className="transaction-reason">
+        Reason: {tx.reason.replace(/_/g, ' ')}
+      </div>
+    )}
+
+    {tx.is_injected_misbehavior && (
+      <div className="transaction-injected">
+        [Injected Misbehavior: {tx.misbehavior_type}]
+      </div>
+    )}
+  </motion.div>
+);
+
+const LLMTestPanel = ({ onRunTest, loading, tier, setTier, scenario, setScenario, result }) => (
+  <section className="glass-panel panel">
+    <header className="panel-header">
+      <FlaskConical size={18} />
+      <h2>LLM Degradation Test Panel</h2>
+    </header>
+
+    <div className="llm-test-controls">
+      <label className="control-group">
+        <span className="label">Tier</span>
+        <select
+          value={tier}
+          onChange={(e) => setTier(e.target.value)}
+          disabled={loading}
+          className="select"
+        >
+          <option value="auto">Auto (Hosted → Ollama → Scripted)</option>
+          <option value="hosted">Hosted API Only (HuggingFace)</option>
+          <option value="ollama">Local Ollama Only</option>
+          <option value="scripted">Scripted Fallback Only</option>
+        </select>
+      </label>
+
+      <label className="control-group scenario-input">
+        <span className="label">Scenario</span>
+        <input
+          type="text"
+          placeholder="Custom scenario (optional)"
+          value={scenario}
+          onChange={(e) => setScenario(e.target.value)}
+          disabled={loading}
+          className="input"
+        />
+      </label>
+
+      <button
+        className="btn btn-primary"
+        onClick={() => onRunTest(tier)}
+        disabled={loading}
+      >
+        {loading ? (
+          <>
+            <RotateCcw size={16} className="animate-spin" />
+            <span>Testing…</span>
+          </>
+        ) : (
+          <>
+            <FlaskConical size={16} />
+            <span>Run Test</span>
+          </>
+        )}
+      </button>
+    </div>
+
+    {result && (
+      <AnimatePresence mode="wait">
+        <motion.div
+          className={`llm-test-result ${result.tier_succeeded ? 'success' : 'error'}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="result-header">
+            <div>
+              <span className="label">Tier Attempted:</span>
+              <code className="tier-code">{result.tier_attempted}</code>
+            </div>
+            <Badge variant={result.tier_succeeded ? 'allowed' : 'denied'}>
+              {result.tier_succeeded ? `Succeeded: ${result.tier_succeeded}` : 'FAILED'}
+            </Badge>
+          </div>
+
+          {result.error && (
+            <div className="result-error">{result.error}</div>
+          )}
+
+          {result.transactions?.length > 0 && (
+            <div className="result-transactions">
+              <strong>Generated Transactions ({result.transactions.length}):</strong>
+              <div className="transactions-list">
+                {result.transactions.map((tx, i) => (
+                  <div key={i} className="transaction-item">
+                    <span className="mono">${parseFloat(tx.amount).toFixed(2)}</span>
+                    <span className="category">{tx.category}</span>
+                    <SourceBadge source={tx.source} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {result.raw_response && (
+            <details className="result-raw">
+              <summary>Raw Response (truncated)</summary>
+              <pre>{result.raw_response}</pre>
+            </details>
+          )}
+        </motion.div>
+      </AnimatePresence>
+    )}
+  </section>
+);
+
+const SimulatorPanel = ({ status, onStart, onStop, onInject }) => (
+  <section className="glass-panel panel">
+    <header className="panel-header">
+      <TerminalSquare size={18} />
+      <h2>Simulator Debug Panel</h2>
+    </header>
+
+    <div className="simulator-controls">
+      <button
+        className="btn btn-outline"
+        onClick={status?.running ? onStop : onStart}
+      >
+        {status?.running ? 'Stop Simulator (Noise)' : 'Start Simulator (Noise)'}
+      </button>
+
+      <div className="divider" />
+
+      <span className="label">Inject Misbehavior:</span>
+
+      <button
+        className="btn btn-outline inject-btn"
+        onClick={() => onInject('overspend')}
+        style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}
+      >
+        <Zap size={14} style={{ color: 'var(--brand-red)' }} /> Overspend
+      </button>
+
+      <button
+        className="btn btn-outline inject-btn"
+        onClick={() => onInject('off_scope')}
+        style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}
+      >
+        <Search size={14} style={{ color: 'var(--brand-red)' }} /> Off Scope
+      </button>
+
+      <button
+        className="btn btn-outline inject-btn"
+        onClick={() => onInject('burst')}
+        style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}
+      >
+        <Activity size={14} style={{ color: 'var(--brand-red)' }} /> Burst
+      </button>
+    </div>
+  </section>
+);
+
+// ── Main App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [agents, setAgents] = useState([]);
@@ -10,6 +322,12 @@ export default function App() {
   const [killSwitchState, setKillSwitchState] = useState('active');
   const [wsConnected, setWsConnected] = useState(false);
   const [simulatorStatus, setSimulatorStatus] = useState(null);
+
+  // LLM Test state
+  const [llmTestResult, setLlmTestResult] = useState(null);
+  const [llmTestLoading, setLlmTestLoading] = useState(false);
+  const [llmTestTier, setLlmTestTier] = useState('auto');
+  const [llmTestScenario, setLlmTestScenario] = useState('');
 
   // Initial fetch
   useEffect(() => {
@@ -22,7 +340,7 @@ export default function App() {
       .then(res => res.json())
       .then(data => setKillSwitchState(data.state))
       .catch(console.error);
-      
+
     fetch(`${API_BASE}/simulator/status`)
       .then(res => res.json())
       .then(data => setSimulatorStatus(data))
@@ -32,18 +350,18 @@ export default function App() {
   // WebSocket connection
   useEffect(() => {
     const ws = new WebSocket(WS_BASE);
-    
+
     ws.onopen = () => setWsConnected(true);
     ws.onclose = () => setWsConnected(false);
-    
+
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === 'transaction_event') {
-        setTransactions(prev => [msg.data, ...prev].slice(0, 100)); // Keep last 100
+        setTransactions(prev => [msg.data, ...prev].slice(0, 100));
       } else if (msg.type === 'kill_switch_event') {
         setKillSwitchState(msg.data.state);
       } else if (msg.type === 'agent_update') {
-        setAgents(prev => prev.map(a => 
+        setAgents(prev => prev.map(a =>
           a.id === msg.data.agent_id ? { ...a, spend_total: parseFloat(msg.data.spend_total) } : a
         ));
       }
@@ -82,12 +400,6 @@ export default function App() {
     });
   };
 
-  // LLM Degradation Test Panel State
-  const [llmTestResult, setLlmTestResult] = useState(null);
-  const [llmTestLoading, setLlmTestLoading] = useState(false);
-  const [llmTestTier, setLlmTestTier] = useState('auto');
-  const [llmTestScenario, setLlmTestScenario] = useState('');
-
   const runLlmTest = async (tier) => {
     setLlmTestLoading(true);
     setLlmTestResult(null);
@@ -111,270 +423,77 @@ export default function App() {
   return (
     <div className="app-container">
       <header className="header">
-        <div>
-          <h1 className="text-gradient" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem', margin: 0 }}>
-            <ShieldAlert size={28} color={isKilled ? 'var(--brand-red)' : 'var(--brand-green)'} />
-            Nexus
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Real-time policy enforcement for AI agents
-          </p>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: wsConnected ? 'var(--brand-green)' : 'var(--brand-red)' }} />
-            {wsConnected ? 'Connected (Live)' : 'Disconnected'}
+        <div className="header-brand">
+          <div className="logo">
+            <ShieldAlert size={28} style={{ color: isKilled ? 'var(--brand-red)' : 'var(--brand-green)' }} />
+            <span className="title">Nexus</span>
           </div>
-          
-          <button 
-            className="btn btn-danger"
-            style={{ 
-              background: isKilled ? 'var(--brand-green)' : 'var(--brand-red)',
-              boxShadow: isKilled ? 'var(--shadow-glow-green)' : 'var(--shadow-glow-red)'
-            }}
-            onClick={toggleKillSwitch}
-          >
-            {isKilled ? <ShieldCheck size={18} /> : <AlertCircle size={18} />}
-            {isKilled ? 'RESTORE AGENTS' : 'GLOBAL KILL SWITCH'}
-          </button>
+          <p className="tagline">Real-time policy enforcement for AI agents</p>
+        </div>
+
+        <div className="header-actions">
+          <ConnectionStatus connected={wsConnected} />
+          <KillSwitchButton isKilled={isKilled} onClick={toggleKillSwitch} />
         </div>
       </header>
 
-      <main style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-        
-        {/* Agent Grid */}
-        <section>
-          <h2 style={{ fontSize: '1.125rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Activity size={20} className="text-gradient" />
-            Active Fleet
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-            {agents.map(agent => {
-              const cap = parseFloat(agent.spend_cap);
-              const spent = parseFloat(agent.spend_total) || 0;
-              const pct = Math.min(100, (spent / cap) * 100);
-              const isFlagged = pct >= 90;
-              
-              return (
-                <div key={agent.id} className="glass-panel" style={{ padding: '1.25rem', opacity: isKilled ? 0.6 : 1, transition: 'all 0.3s' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <h3 style={{ fontSize: '1rem' }}>{agent.name}</h3>
-                    <span className="badge" style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--text-secondary)' }}>
-                      {agent.category}
-                    </span>
-                  </div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Spend Cap</span>
-                    <span className="mono">${spent.toFixed(2)} / ${cap.toFixed(2)}</span>
-                  </div>
-                  
-                  <div className="progress-bg">
-                    <div 
-                      className="progress-fill" 
-                      style={{ 
-                        width: `${pct}%`,
-                        background: isFlagged ? 'var(--brand-red)' : 'var(--brand-green)'
-                      }} 
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-        
-        {/* Simulator Controls (Debug) */}
-        <section className="glass-panel" style={{ padding: '1.25rem' }}>
-          <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <TerminalSquare size={18} />
-            Simulator Debug Panel
-          </h2>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            {simulatorStatus?.running ? (
-              <button className="btn btn-outline" onClick={stopSimulator}>Stop Simulator (Noise)</button>
-            ) : (
-              <button className="btn btn-outline" onClick={startSimulator}>Start Simulator (Noise)</button>
-            )}
-            
-            <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 0.5rem' }} />
-            
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Inject:</span>
-            <button className="btn btn-outline" onClick={() => triggerMisbehavior('overspend')} style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-              <Zap size={14} color="var(--brand-red)" /> Overspend
-            </button>
-            <button className="btn btn-outline" onClick={() => triggerMisbehavior('off_scope')} style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-              <Search size={14} color="var(--brand-red)" /> Off Scope
-            </button>
-            <button className="btn btn-outline" onClick={() => triggerMisbehavior('burst')} style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-              <Activity size={14} color="var(--brand-red)" /> Burst
-            </button>
-          </div>
-        </section>
+      <div className="layout">
+        <main className="main">
+          {/* Agent Grid */}
+          <section className="panel">
+            <header className="panel-header">
+              <Activity size={20} />
+              <h2>Active Fleet</h2>
+            </header>
 
-        {/* LLM Degradation Test Panel */}
-        <section className="glass-panel" style={{ padding: '1.25rem' }}>
-          <h2 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FlaskConical size={18} />
-            LLM Degradation Test Panel
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                Tier:
-                <select 
-                  value={llmTestTier} 
-                  onChange={(e) => setLlmTestTier(e.target.value)}
-                  disabled={llmTestLoading}
-                  className="btn btn-outline"
-                  style={{ padding: '0.35rem 0.7rem', fontSize: '0.75rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '8px' }}
-                >
-                  <option value="auto">Auto (Hosted → Ollama → Scripted)</option>
-                  <option value="hosted">Hosted API Only (HuggingFace)</option>
-                  <option value="ollama">Local Ollama Only</option>
-                  <option value="scripted">Scripted Fallback Only</option>
-                </select>
-              </label>
-              <input
-                type="text"
-                placeholder="Custom scenario (optional)"
-                value={llmTestScenario}
-                onChange={(e) => setLlmTestScenario(e.target.value)}
-                disabled={llmTestLoading}
-                style={{ flex: 1, minWidth: '200px', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '0.875rem' }}
-              />
-              <button 
-                className="btn btn-danger"
-                onClick={() => runLlmTest(llmTestTier)}
-                disabled={llmTestLoading}
-                style={{ width: 'fit-content' }}
-              >
-                {llmTestLoading ? <RotateCcw size={16} className="animate-spin" /> : <FlaskConical size={16} />} Test
-              </button>
+            <div className="agent-grid">
+              {agents.map(agent => (
+                <AgentCard key={agent.id} agent={agent} isKilled={isKilled} />
+              ))}
             </div>
+          </section>
 
-            {llmTestResult && (
-              <div style={{ 
-                padding: '1rem', 
-                borderRadius: '8px', 
-                background: llmTestResult.tier_succeeded ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                border: `1px solid ${llmTestResult.tier_succeeded ? 'var(--brand-green)' : 'var(--brand-red)'}`
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                    Tier Attempted: <code style={{ color: 'var(--brand-orange)' }}>{llmTestResult.tier_attempted}</code>
-                  </span>
-                  <span style={{ 
-                    padding: '0.15rem 0.5rem', 
-                    borderRadius: '4px', 
-                    fontSize: '0.7rem', 
-                    fontWeight: 800,
-                    background: llmTestResult.tier_succeeded ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                    color: llmTestResult.tier_succeeded ? 'var(--brand-green)' : 'var(--brand-red)'
-                  }}>
-                    {llmTestResult.tier_succeeded ? `Succeeded: ${llmTestResult.tier_succeeded}` : 'FAILED'}
-                  </span>
+          {/* Debug Panels */}
+          <SimulatorPanel
+            status={simulatorStatus}
+            onStart={startSimulator}
+            onStop={stopSimulator}
+            onInject={triggerMisbehavior}
+          />
+
+          <LLMTestPanel
+            onRunTest={runLlmTest}
+            loading={llmTestLoading}
+            tier={llmTestTier}
+            setTier={setLlmTestTier}
+            scenario={llmTestScenario}
+            setScenario={setLlmTestScenario}
+            result={llmTestResult}
+          />
+        </main>
+
+        {/* Sidebar: Event Log */}
+        <aside className="sidebar glass-panel">
+          <header className="panel-header">
+            <h2>Live Audit Trail</h2>
+          </header>
+
+          <div className="audit-feed">
+            <AnimatePresence mode="popLayout">
+              {transactions.length === 0 ? (
+                <div className="audit-empty">
+                  <Activity size={32} className="audit-empty-icon" />
+                  <p>Waiting for events…</p>
                 </div>
-                
-                {llmTestResult.error && (
-                  <div style={{ color: 'var(--brand-red)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                    Error: {llmTestResult.error}
-                  </div>
-                )}
-
-                {llmTestResult.transactions && llmTestResult.transactions.length > 0 && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    <strong>Generated Transactions ({llmTestResult.transactions.length}):</strong>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem' }}>
-                      {llmTestResult.transactions.map((tx, i) => (
-                        <div key={i} style={{ display: 'flex', gap: '1rem', fontFamily: 'monospace' }}>
-                          <span>${parseFloat(tx.amount).toFixed(2)}</span>
-                          <span>{tx.category}</span>
-                          <span style={{ 
-                            padding: '0.1rem 0.4rem', 
-                            borderRadius: '4px', 
-                            fontSize: '0.6rem',
-                            background: tx.source === 'llm-hosted' ? 'rgba(245, 158, 11, 0.2)' : 
-                                     tx.source === 'llm-local' ? 'rgba(245, 158, 11, 0.2)' : 
-                                     'rgba(255,255,255,0.06)',
-                            color: tx.source === 'sim' ? '#71717a' : '#fbbf24',
-                            border: tx.source === 'sim' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(245, 158, 11, 0.4)'
-                          }}>
-                            {tx.source === 'llm-hosted' ? 'LLM ☁' : tx.source === 'llm-local' ? 'LLM' : 'SIM'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {llmTestResult.raw_response && (
-                  <details style={{ marginTop: '1rem' }}>
-                    <summary style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                      Raw Response (truncated)
-                    </summary>
-                    <pre style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(0,0,0,0.3)', borderRadius: '4px', fontSize: '0.65rem', overflow: 'auto', whiteSpace: 'pre-wrap' }}>
-                      {llmTestResult.raw_response}
-                    </pre>
-                  </details>
-                )}
-              </div>
-            )}
+              ) : (
+                transactions.map((tx, i) => (
+                  <TransactionRow key={tx.id} tx={tx} index={i} />
+                ))
+              )}
+            </AnimatePresence>
           </div>
-        </section>
-
-      </main>
-
-      {/* Sidebar: Event Log */}
-      <aside className="glass-panel" style={{ display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 8rem)', overflow: 'hidden' }}>
-        <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--border-color)' }}>
-          <h2 style={{ fontSize: '1.125rem' }}>Live Audit Trail</h2>
-        </div>
-        
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {transactions.length === 0 ? (
-            <div style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '2rem' }}>
-              Waiting for events...
-            </div>
-          ) : (
-            transactions.map(tx => (
-              <div key={tx.id} className="animate-slide-in" style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <span style={{ fontWeight: 500, fontSize: '0.875rem' }}>
-                    {tx.agent_name || tx.agent_id}
-                    {tx.source === 'llm-hosted' ? (
-                      <span style={{ marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.55rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.04em', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', verticalAlign: 'middle' }}>LLM ☁</span>
-                    ) : tx.source === 'llm-local' ? (
-                      <span style={{ marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.55rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.04em', background: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)', verticalAlign: 'middle' }}>LLM</span>
-                    ) : (
-                      <span style={{ marginLeft: '0.5rem', display: 'inline-flex', alignItems: 'center', padding: '0.15rem 0.55rem', borderRadius: '4px', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.04em', background: 'rgba(255,255,255,0.06)', color: '#71717a', border: '1px solid rgba(255,255,255,0.1)', verticalAlign: 'middle' }}>SIM</span>
-                    )}
-                  </span>
-                  <span className={`badge badge-${tx.decision}`}>{tx.decision}</span>
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  <span>{tx.category} • <span className="mono">${parseFloat(tx.amount).toFixed(2)}</span></span>
-                  <span className="mono" style={{ fontSize: '0.75rem' }}>{new Date(tx.timestamp).toLocaleTimeString()}</span>
-                </div>
-                
-                {tx.reason && (
-                  <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--brand-red)', background: 'rgba(239, 68, 68, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
-                    Reason: {tx.reason.replace(/_/g, ' ')}
-                  </div>
-                )}
-                
-                {tx.is_injected_misbehavior && (
-                  <div style={{ marginTop: '0.25rem', fontSize: '0.7rem', color: 'var(--brand-orange)' }}>
-                    [Injected Misbehavior: {tx.misbehavior_type}]
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </aside>
+        </aside>
+      </div>
     </div>
   );
 }
