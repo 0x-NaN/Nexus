@@ -58,8 +58,41 @@
      - nexus-rebuild-spec.md (full technical spec, now superseded by context.md
        for ongoing reference — keep as historical archive)
 
-  NEXT: initialize git repo (if not already done), commit all existing code,
-  then begin Phase 1 additions in dependency order:
-  MCP tooling setup → LLM degradation tiers → Auth → CI/CD → motion.dev
+NEXT: initialize git repo (if not already done), commit all existing code,
+then begin Phase 1 additions in dependency order:
+MCP tooling setup → LLM degradation tiers → Auth → CI/CD → motion.dev
 
 ------------------------------------------------------------
+
+[2026-08-22] — CLEANUP + GIT INIT + MCP SETUP
+
+  Cleanup:
+  - Removed all __pycache__ directories (backend/app, simulator, routers, services)
+  - Removed backend/scratch/ dev scripts (test_ws.py, reset_db.py, migrate_source.py, metrics.sql)
+  - Removed root audit_log.csv test artifact
+  - Renamed changes_log_new.txt → changes_log.txt (per context.md spec)
+  - Removed duplicate presentation files (nexus-deck.pptx, nexus-deck-editable.pptx, nexus-deck.pdf)
+  - Created root .gitignore with proper Python/Node/IDE/OS exclusions
+
+  Git:
+  - Initialized repo, committed all existing code (53 files, 5710 insertions)
+  - Pushed to https://github.com/0x-NaN/Nexus.git (main branch)
+  - Fixed email privacy issue using GitHub no-reply email
+
+  MCP Setup (5 servers configured in ~/.config/opencode/opencode.json):
+  - filesystem: @modelcontextprotocol/server-filesystem ✓
+  - git: @cyanheads/git-mcp-server ✓
+  - github: @modelcontextprotocol/server-github ✓
+  - postgres: @yawlabs/postgres-mcp (env: DATABASE_URL) ✓
+  - docker: mcp-server-docker ✓
+
+  PRODUCT.md updated:
+  - Users section: primary = small-org operators, secondary = Ash (portfolio), tertiary = OSS contributors
+  - Product Purpose: added "production-credible governance infrastructure" success line
+  - Accessibility & Inclusion: updated for dark mode intent, JWT/OIDC upcoming, contrast check during motion.dev
+
+  context.md updated:
+  - Added MCP Setup Note and PPT/Deck Reminder (Gemini Notebook for content, local-slide-architect for formatting only)
+  - Added Finalization Instruction for removing Codestreet/AmEx artifacts
+
+  NEXT: LLM degradation tiers (hosted API primary → Ollama fallback → scripted last resort)

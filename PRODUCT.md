@@ -6,11 +6,11 @@ product
 
 ## Users
 
-**Primary**: Hackathon judges at Codestreet 2026 finale. They evaluate in a live demo setting — the dashboard must communicate instantly: what the product does, that policy enforcement is working, and that the kill-switch mechanism is real-time. No onboarding, no tutorials. Every element visible in the first 5 seconds must reinforce the governance narrative.
+**Primary**: Small-org operators and engineering teams deploying autonomous AI agents who need a lightweight, self-hosted governance layer. They need to understand system state at a glance, configure per-agent policies, and have a credible audit trail for internal review or regulatory purposes.
 
-**Secondary**: Ash (the solo builder) uses this for demo rehearsal and debugging. The simulator debug panel and live audit trail serve this workflow without compromising the judge-facing polish.
+**Secondary**: Ash (builder) — portfolio piece targeting fintech risk & controls roles (AmEx, JPM-type) and systems/ML-infra internship positions. Must signal: policy enforcement, real-time revocation, immutable audit logging, and engineering maturity (honest limitation disclosure, architecture-first process).
 
-**Tertiary**: Portfolio piece for fintech risk & controls roles (AmEx, JPM-type). Must signal: policy enforcement, real-time revocation, immutable audit logging — controls/ops relevance, not ML modeling.
+**Tertiary**: Open-source contributors and evaluators assessing Nexus as a base for their own agent governance needs.
 
 ## Product Purpose
 
@@ -22,6 +22,8 @@ A real-time governance dashboard for a simulated fleet of AI payment agents. Dem
 - Immutable audit trail with export
 
 Success looks like: a judge watches the live demo for 30 seconds and immediately understands "this is a governance layer that can halt rogue AI agents before they cause damage." The kill-switch toggle is the demo's "wow" moment — it must feel instant and definitive.
+
+Success looks like: an operator or evaluator opens the dashboard, watches agents transacting in real time, sees a violation get caught and the kill switch halt the fleet, and immediately understands this is production-credible governance infrastructure — not a demo toy.
 
 ## Brand Personality
 
@@ -47,4 +49,4 @@ Precise. Authoritative. Polished.
 
 ## Accessibility & Inclusion
 
-Current approach is sufficient for the demo context. Dark mode is intentional for theater/judging conditions. No specific WCAG level target. Color is not the sole differentiator for decisions (badge text + color). Reduced motion is not a priority for this surface.
+Dark mode is intentional — matches the "command center" aesthetic and reads well in both office and presentation environments. Color is never the sole differentiator for decisions (badge text + color always present together). Auth (JWT/OIDC) is being added for real multi-user support. No specific WCAG level target currently, but contrast ratios should be checked during the motion.dev pass.

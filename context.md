@@ -48,6 +48,13 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 | CI/CD | None | GitHub Actions (Phase 1) |
 | Deployment | Local only | Docker Compose |
 | Dev tooling | OpenCode (blind) | + Filesystem/Git/GitHub/PostgreSQL/Docker MCP |
+| MCP servers (configured) | — | filesystem, git (@cyanheads/git-mcp-server), github, postgres (@yawlabs/postgres-mcp), docker |
+
+---
+
+**MCP Setup Note**: All 5 MCPs configured in `~/.config/opencode/opencode.json` and verified connected via `opencode mcp list`.
+
+**PPT/Deck Reminder**: When creating or updating presentation slides/decks, use **Gemini Notebook** (not the local-slide-architect MCP) for generating content — then use local-slide-architect only for final formatting/export if needed.
 
 ---
 
@@ -96,9 +103,18 @@ Graceful degradation: the policy engine doesn't care which tier generated the re
 ## Files to Keep Current
 - `context.md` (this file) — always reflects CURRENT state; edit/update when things change, don't just append
 - `changes_log.txt` — append-only historical record; log every session with timestamp, files touched, decisions, test results, NEXT line
-- `PRODUCT.md` — product definition, user profiles, design principles (needs user profile update — primary user is no longer hackathon judges, now small-org operators and portfolio viewers)
+- `PRODUCT.md` — product definition, user profiles, design principles (updated: primary user is now small-org operators, not hackathon judges)
 - `DESIGN.md` — design system spec (known discrepancy: originally specced purple accent, actual implementation uses amber/gold; update to match reality during this refactor)
 - `motion-design.md` — NEW file to be created (see below)
+
+---
+
+## Finalization Instruction
+**When project is finalized (open-source MVP ready): remove all artifacts and mentions of Codestreet/AmEx from the codebase.** This includes:
+- References in context.md, PRODUCT.md, DESIGN.md, presentation/ files
+- The "Codestreet Governance" branding in DESIGN.md (replace with "Nexus Governance")
+- Hackathon-specific language in comments, docs, and UI copy
+- Repository name/origin references if different from final name
 
 ---
 
