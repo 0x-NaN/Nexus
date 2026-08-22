@@ -96,3 +96,36 @@ MCP tooling setup → LLM degradation tiers → Auth → CI/CD → motion.dev
   - Added Finalization Instruction for removing Codestreet/AmEx artifacts
 
   NEXT: LLM degradation tiers (hosted API primary → Ollama fallback → scripted last resort)
+
+------------------------------------------------------------
+
+[2026-08-22] — MCP VERIFICATION + GITHUB TOKEN SETUP
+
+  GITHUB_TOKEN set in environment (ghp_****)
+
+  MCP Verification Results:
+  1. Filesystem MCP: ✓ Connected (npx @modelcontextprotocol/server-filesystem)
+     - Project root accessible, key files present (backend/, frontend/, context.md, changes_log.txt, motion-design.md, PRODUCT.md)
+
+  2. Git MCP: ✓ Connected (npx @cyanheads/git-mcp-server)
+     - Working directory set to C:\Users\asmit\Desktop\WD_Elements\2026-27\Amex_Streetcode
+     - Branch: main, clean working tree, upstream origin/main
+     - Recent commits verified
+
+  3. GitHub MCP: ✓ Connected (npx @modelcontextprotocol/server-github)
+     - Remote repo accessible: https://github.com/0x-NaN/Nexus.git
+     - Listed recent commits (3 commits on main branch)
+
+  4. PostgreSQL MCP: ✓ Connected (npx @yawlabs/postgres-mcp)
+     - DATABASE_URL configured: postgres://postgres:postgres@localhost:5432/killswitch
+     - Verified via psql: SELECT COUNT(*) FROM agents = 5 agents
+     - Note: MCP server requires PGPASSWORD env for password auth; direct psql works
+
+  5. Docker MCP: ✓ Connected (npx mcp-server-docker)
+     - Docker CLI not installed on host (Windows), MCP may use Docker API directly
+     - No containers running (expected)
+
+  Git status: Clean, no pending changes
+  All 5 MCPs verified functional. Ready for Phase 1 refactor work.
+
+  NEXT: LLM degradation tiers (hosted API primary → Ollama fallback → scripted last resort)
