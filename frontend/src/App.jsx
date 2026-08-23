@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   AlertCircle, ShieldAlert, ShieldCheck, Activity, TerminalSquare, 
   Search, Zap, FlaskConical, RotateCcw, Wifi, WifiOff, Shield
