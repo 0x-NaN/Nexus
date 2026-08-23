@@ -65,6 +65,10 @@ CREATE TABLE transactions (
   -- Informational only. Policy engine ignores this field during evaluation.
   -- NULL for normal noise transactions.
 
+  source                  VARCHAR(20)    NOT NULL DEFAULT 'sim'
+                            CHECK (source IN ('sim', 'llm-hosted', 'llm-local')),
+  -- Source of transaction: 'sim' (scripted), 'llm-hosted' (hosted API), 'llm-local' (local Ollama)
+
   CONSTRAINT reason_required_on_deny_flag
     CHECK (
       (decision = 'allowed' AND reason IS NULL)
