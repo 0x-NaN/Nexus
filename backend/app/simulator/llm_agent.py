@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import random as rnd
 import string
 from datetime import datetime, timezone
@@ -12,7 +13,8 @@ from app.models import TransactionIn
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+# Use host.docker.internal for Docker on Windows/Mac, localhost for local dev
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
 OLLAMA_MODEL = "qwen14b-opencode:latest"
 
 HF_API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"

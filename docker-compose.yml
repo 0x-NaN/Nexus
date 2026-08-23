@@ -11,7 +11,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./backend/db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
-      - ./backend/db/migrations:/docker-entrypoint-initdb.d/migrations
+      - ./backend/db/migrations/001_source_column_update.sql:/docker-entrypoint-initdb.d/03-migration.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -27,6 +27,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/killswitch
       HF_API_TOKEN: ${HF_API_TOKEN}
+      OLLAMA_URL: http://host.docker.internal:11434/api/generate
       PYTHONUNBUFFERED: 1
     depends_on:
       postgres:
