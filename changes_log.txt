@@ -187,3 +187,28 @@ MCP tooling setup → LLM degradation tiers → Auth → CI/CD → motion.dev
   - Frontend test panel renders and communicates with backend
 
   NEXT: Auth (JWT/OIDC)
+
+------------------------------------------------------------
+
+[2026-08-23] — DOCKER COMPOSE FIXES + DB MIGRATION + OLLAMA NETWORKING
+
+  Issues fixed in Docker deployment:
+  1. Migration not running in container — moved 001_source_column_update.sql to 
+     ./backend/db/migrations/001_source_column_update.sql → 
+     /docker-entrypoint-initdb.d/03-migration.sql in docker-compose.yml
+  2. Ollama connection refused from backend container — changed OLLAMA_URL 
+     from localhost:11434 to host.docker.internal:11434 for Docker networking
+  3. Made OLLAMA_URL configurable via environment variable (defaults to localhost for local dev)
+
+  Files changed:
+  - docker-compose.yml — migration volume mount, OLLAMA_URL env for backend
+  - backend/app/simulator/llm_agent.py — OLLAMA_URL from env var
+  - .env.example — documented OLLAMA_URL
+
+  Expected result after rebuild:
+  - PostgreSQL has source column with CHECK constraint (sim, llm-hosted, llm-local)
+  - Backend connects to Ollama on host machine via host.docker.internal
+  - Simulator starts, produces transactions, live audit trail works
+  - LLM degradation test panel works with all tiers
+
+  NEXT: Auth (JWT/OIDC)
