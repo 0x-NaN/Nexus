@@ -253,6 +253,46 @@ docker compose logs -f frontend
 
 ## Common Issues & Fixes
 
+---
+
+## Common Issues & Fixes
+
+---
+
+## Database Reset
+
+### From Backend (Recommended)
+
+The backend provides a utility script to reset the database. This truncates all transaction and kill switch data and re-seeds the initial state.
+
+```bash
+# From backend directory
+cd backend
+
+# Option 1: Using the reset script (requires PGPASSWORD env)
+PGPASSWORD=postgres python -m scratch.reset_db
+
+# Option 2: Using psql directly
+PGPASSWORD=postgres psql -h localhost -U postgres -d killswitch -c "
+  TRUNCATE transactions, kill_switch_events RESTART IDENTITY;
+  INSERT INTO kill_switch_events (state, triggered_by) VALUES ('active', 'system_startup');
+"
+```
+
+### From Docker Compose
+
+```bash
+# Full reset including volumes (nuclear option)
+docker compose down -v
+docker compose up --build
+```
+
+### Reset via API (if endpoint exists)
+
+Currently no dedicated reset endpoint exists. Use the script or Docker method above.
+
+---
+
 ### "Bad Request" / 400 Errors
 | Cause | Fix |
 |-------|-----|
