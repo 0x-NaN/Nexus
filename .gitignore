@@ -70,3 +70,11 @@ presentation/*.pptx
 # Environment files
 *.env
 !.env.example
+
+# Context & documentation (internal only)
+context.md
+changes_log.txt
+PRODUCT.md
+DESIGN.md
+motion-design.md
+SETUP_AND_RUN_GUIDE.md

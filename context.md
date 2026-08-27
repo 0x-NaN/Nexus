@@ -37,7 +37,7 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 
 | Layer | Current | Planned addition |
 |---|---|---|
-| Frontend | React + Vite | motion.dev (functional motion only — see motion-design.md) |
+| Frontend | React + Vite + kokonut UI + bklit UI | motion.dev (functional motion only — see motion-design.md); Vercel AI SDK Elements for chat/ref patterns |
 | API | FastAPI (Python, async) | — |
 | Policy | Python (in-process) | — |
 | Primary DB | PostgreSQL | — |
@@ -46,7 +46,7 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 | Auth | None (single-operator, demo) | JWT/OIDC |
 | Observability | None | OpenTelemetry + Prometheus + Grafana (Phase 2) |
 | CI/CD | None | GitHub Actions (Phase 1) |
-| Deployment | Local only | Docker Compose (documented in SETUP_AND_RUN_GUIDE.md) |
+| Deployment | Local only | Docker Compose — validation in progress (2026-08-24) |
 | Dev tooling | OpenCode (blind) | + Filesystem/Git/GitHub/PostgreSQL/Docker MCP |
 | MCP servers (configured) | — | filesystem, git (@cyanheads/git-mcp-server), github, postgres (@yawlabs/postgres-mcp), docker |
 
@@ -55,6 +55,35 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 **MCP Setup Note**: All 5 MCPs configured in `~/.config/opencode/opencode.json` and verified connected via `opencode mcp list`.
 
 **PPT/Deck Reminder**: When creating or updating presentation slides/decks, use **Gemini Notebook** (not the local-slide-architect MCP) for generating content — then use local-slide-architect only for final formatting/export if needed.
+
+---
+
+## Agent Prompting References & Vibe-Coding Stack
+
+### UI & Component Tools (for agent scaffolding)
+- **kokonut UI** — Tailwind + shadcn + Motion; designed for agent shippage ("Components humans browse. Agents ship")
+- **bklit UI** — shadcn-based charts and data visualization  
+- **Vercel AI SDK Elements** or **assistant-ui** — ChatGPT-style interface scaffolding with reference citations and tool-use streams
+- **motion.dev** — Declarative React animations; use only for functional motion (state changes, transitions), never decorative
+
+### Design & Web Polish References
+- **Taste skill** — Design taste and aesthetic judgment; use for pre-review of UI mockups and component styling before shipping
+- **Web Design Guidelines** — Design system documentation and best practices; reference for coherent color/typography/spacing across screens
+- **Awesome Design.md** — Curated list of design patterns and inspirational references; consult for UI layout ideas and interaction patterns
+- **frontend-design skill** — Distinctive visual design guidance; templates for mockups, landing pages, and component polish
+
+### Testing & Automation
+- **Playwright CLI** — End-to-end testing; use for regression tests on dashboard interactions (WebSocket events, button actions, kill-switch toggle)
+
+### Architecture & Prompting References (ground agent instructions in these patterns)
+- **fullstackopen** — Gold-standard React/Node/GraphQL architecture; use as a constraint in agent prompts ("Build following Full Stack Open best practices")
+- **codecrafters.io** — Low-level system design patterns (Redis, Git, SQLite from scratch); for building custom backend utilities with high specificity
+- **missing semester** (MIT) — CLI/Git/shell mastery; ensures local dev environment is optimized for AI coding agents relying on terminal/Git ops
+
+### Agent Execution & Automation
+- **manus.im** — Autonomous task execution; use as the agent itself for code writing, documentation scraping, deployment (not as a library integration)
+
+**Vibe-Coding Rule**: When writing context files for agents (context.md, instruction sequences for OpenCode), reference these tools and patterns explicitly. Example: *"Build using fullstackopen best practices. Use kokonut UI for component scaffolding. Preserve motion.dev for functional transitions only."*
 
 ---
 

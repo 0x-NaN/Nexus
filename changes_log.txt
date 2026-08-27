@@ -212,3 +212,117 @@ MCP tooling setup → LLM degradation tiers → Auth → CI/CD → motion.dev
   - LLM degradation test panel works with all tiers
 
   NEXT: Auth (JWT/OIDC)
+
+------------------------------------------------------------
+
+[2026-08-24] — DOCKER COMPOSE VALIDATION SPRINT
+
+  Goals: test and fix Compose locally, verify all 3 services healthy, prep for Railway deployment.
+  UI polish (motion.dev) and Filesystem MCP fix also in progress this session.
+
+  Docker Compose fixes applied so far:
+  - source column added to schema.sql with CHECK constraint
+  - Migration runs as 03-migration.sql in initdb sequence
+  - OLLAMA_URL uses host.docker.internal:11434 for Docker networking
+
+  Next: docker compose up --build and verify all services
+
+------------------------------------------------------------
+
+[2026-08-27] — VIBE-CODING STACK INTEGRATION + AGENT HANDOFF TRACKING
+
+  Files created/updated:
+  - motion-design.md — NEW. Formalizes motion.dev functional-only constraint
+    - Documents valid triggers (audit entry slide-in, meter transitions, kill-switch state, badge appearance, glows)
+    - Explicitly forbids page entrance, spinners, parallax, decorative motion
+    - Timing rules (150–300ms), easing guidelines, testing notes
+    - Aligns with existing DESIGN.md philosophy
+
+  - context.md — UPDATED in two places:
+    1. Tech Stack table (Frontend row): Added kokonut UI + bklit UI as current tools; Vercel AI SDK Elements for chat/ref patterns
+    2. New section "Agent Prompting References & Vibe-Coding Stack":
+       - UI tools: kokonut UI, bklit UI, Vercel AI SDK Elements, motion.dev
+       - Architecture refs for agent prompting: fullstackopen (gold standard), codecrafters (low-level patterns), missing semester (CLI/Git)
+       - Portfolio polish: polishme.ai
+       - Agent execution: manus.im (autonomous task running, not library integration)
+       - Vibe-Coding Rule: how to write context files with explicit tool/pattern references for agents
+
+  Intent: Ground all future agent scaffolding (OpenCode, Antigravity) in proven patterns and predefined component libraries.
+  This avoids generic/templated UI generation and ensures consistent tool choices across projects.
+
+  Update (same session): Expanded vibe-coding stack to include design & testing tools:
+  - Added Playwright CLI for E2E regression tests (WebSocket events, button actions, kill-switch toggle)
+  - Added Taste skill for aesthetic judgment on UI pre-review
+  - Added Web Design Guidelines for design system consistency across screens
+  - Added Awesome Design.md as curated reference for layout/interaction patterns
+  These are now documented in context.md "Agent Prompting References & Vibe-Coding Stack" section.
+
+  Update (same session): Installed Vercel AI SDK Elements for chat/ref patterns:
+  - Installed `ai` (v7.0.83), `@ai-sdk/react` (v4.0.86), `@assistant-ui/react` (v0.15.16)
+  - These provide chat/ref patterns for agent scaffolding per context.md tech stack
+  - kokonut UI and bklit UI are component registries/design systems (referenced in context.md)
+  - Both are shadcn-based design systems; integration pending component selection
+
+  NEXT: Auth (JWT/OIDC) — if required before motion.dev; otherwise defer to Phase 1 polish pass
+
+------------------------------------------------------------
+
+============================================================
+  AGENT HANDOFF TRACKING
+  Format: [TIMESTAMP] — AGENT_NAME — TASK — CONTEXT_FILE — STATUS
+============================================================
+
+  PURPOSE: Maintain a clear record of which agent handled which task,
+  what context was provided, and what the outcome was. Prevents duplicate
+  work and surfaces dependency chains across parallel tasks.
+
+  CONVENTION:
+  - Agent name: OpenCode (blind mode), Antigravity, or manual (Ash writes code directly)
+  - Task: one-liner describing the work (e.g., "LLM degradation tiers", "Burst detection fix")
+  - Context file: which context.md, instruction doc, or spec was used
+  - Status: in-progress / complete / blocked-on / awaiting-review
+  - Notes: any blockers, dependencies, or key decisions
+
+  ACTIVE HANDOFFS (as of 2026-08-27):
+
+  [2026-08-22] — OpenCode — MCP tooling setup + verification — context.md + no MCP override prompts — COMPLETE
+    Notes: All 5 MCPs verified (filesystem, git, github, postgres, docker). Ready for next handoff.
+
+  [2026-08-22] — OpenCode — LLM degradation tiers (hosted → ollama → scripted) — context.md + llm_agent.py spec — COMPLETE
+    Notes: Three-tier fallback working. Ollama local qwen14b-opencode:latest. HF token optional (graceful degrade).
+
+  [2026-08-22] — OpenCode — Setup guide + LLM test panel — context.md + SETUP_AND_RUN_GUIDE.md — COMPLETE
+    Notes: Docker Compose scaffold created. Frontend test panel for tier selection. Ollama GPU profile included.
+
+  [2026-08-23] — OpenCode — Docker Compose debugging (migration, Ollama networking) — context.md + docker-compose.yml — COMPLETE
+    Notes: OLLAMA_URL now uses host.docker.internal. Migration runs at startup. Postgres connection verified.
+
+  [2026-08-24] — OpenCode — Docker Compose validation sprint — context.md + docker-compose.yml — IN-PROGRESS
+    Notes: Target: docker compose up --build with all 3 services healthy. Prep for Railway/production. UI polish (motion.dev) deferred to after validation.
+
+  PENDING HANDOFFS (not yet started):
+
+  [ ] — OpenCode — Auth (JWT/OIDC) — context.md + api_contract.md — QUEUED
+    Blocker: Resolve whether Auth is blocking Motion.dev or can run in parallel.
+    Priority: High (Phase 1, multi-user support). Dependency: Docker validation complete.
+
+  [ ] — OpenCode — motion.dev integration (functional only) — context.md + motion-design.md — QUEUED
+    Tasks: (1) Update spend-meter color/width transitions. (2) Audit trail entry slide-in. (3) Kill-switch glow/opacity.
+    Priority: Medium (Phase 1, design polish). Dependency: Auth + Docker validation. Reference: motion-design.md for constraints.
+
+  [ ] — OpenCode — GitHub Actions CI/CD (lint/test) — context.md + .github/workflows/ — QUEUED
+    Priority: Medium (Phase 1). Dependency: Auth complete.
+
+  COMPLETED HANDOFFS (archived):
+
+  [2026-08-21] — Ash (manual) — Project scope + Phase 1/2 decisions — context.md + changes_log.txt — COMPLETE
+    Outcome: Phase 1 locked (Auth, CI/CD, MCP, LLM tiers, motion.dev). Phase 2 (observability) defined. Novelty features parked.
+
+  [2026-08-22] — Ash (manual) — File cleanup + git init — context.md + .gitignore — COMPLETE
+    Outcome: Codebase cleaned, 53 files committed to https://github.com/0x-NaN/Nexus.git.
+
+  [2026-08-22] — Ash (manual) — PRODUCT.md update (user profiles, product purpose) — context.md — COMPLETE
+    Outcome: Primary user = small-org operators. Secondary = portfolio (Ash). Tertiary = OSS contributors.
+
+  [2026-08-27] — Ash (manual) — Vibe-coding stack integration (motion-design.md, context.md updates) — context.md + motion-design.md — COMPLETE
+    Outcome: UI libraries (kokonut, bklit, Vercel SDK), architecture references (fullstackopen, codecrafters), and agent prompting guidelines now in context.

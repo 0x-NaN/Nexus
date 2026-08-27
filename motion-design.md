@@ -1,38 +1,56 @@
-# motion-design.md — Nexus Motion Policy
+# Motion Design — Nexus Governance
 
-## Decision
-motion.dev is added to the frontend stack. The design system's "Authority Through Restraint" principle is preserved — this library is here for functional motion, not decorative animation. Every animation must be triggered by a real data change or user action. Nothing plays just because a page loaded or a component mounted.
-
----
-
-## What counts as functional motion (allowed)
-
-**Audit trail entries**
-New entries slide in from the top of the feed when they arrive via WebSocket. Short duration (~200ms), ease-out. Communicates that new data arrived without demanding attention the way a flash or color-pulse would.
-
-**Spend-meter transitions**
-The progress bar fill animates its width and color as spend_total updates. Color transition is the more important part — green → orange → red as the agent approaches and crosses the cap thresholds. This isn't decoration; the color change IS the signal.
-
-**Kill switch state change**
-On activation: the button shifts color, the glow intensifies (box-shadow), and agent cards drop to reduced opacity (fleet halted visual). On restoration: reverse. These transitions should feel fast and definitive — ~150ms. The motion confirms the action before the user even looks for confirmation text.
-
-**Flagged/denied badge appearance**
-When a transaction is flagged or denied, the badge entrance should be slightly weighted — not instant pop, not a slow fade, something between (~100ms ease-in). Denied feels more abrupt than flagged; that's intentional and fine.
+**Library**: motion.dev (formerly Framer Motion)  
+**Version**: Latest  
+**Integration scope**: React component animations only
 
 ---
 
-## What is NOT allowed (even though the library is available)
+## Core Principle: Functional Motion Only
 
-- Page-entrance orchestration sequences (staggered hero text, cascading card reveals)
-- Loading spinners or skeleton screens in content areas — if data isn't loaded, show a static placeholder or nothing
-- Parallax or scroll-linked effects of any kind
-- Any animation that plays without being triggered by a real data change or explicit user action
-- Hover microanimations that aren't already present via CSS (don't add motion.dev hover effects just because you can)
-- Looping idle animations on the dashboard when nothing is happening
+motion.dev is added with a **hard scope constraint**: animations must be triggered by real data changes or user interactions. Motion serves clarity, never decoration. This preserves the "authority through restraint" design philosophy from DESIGN.md.
 
 ---
 
-## Integration notes
-- Import only what's needed from motion.dev — don't pull in the full bundle for three specific transitions
-- Prefer CSS variables for durations/easings so they're consistent with the existing design token system (`--transition-fast: 0.15s`, etc.)
-- If a transition can be done cleanly with plain CSS, do it with plain CSS — motion.dev is for cases where it adds genuine control (e.g. exit animations, physics-based spring on the kill-switch glow) that CSS alone can't do cleanly
+## What Counts as "Functional"
+
+Animate these state changes:
+- **New audit trail entry**: Slide up + fade in (0.3s ease-out, 10px translate)
+- **Spend-cap progress bar**: Width and background-color transitions as the meter fills (0.3s ease)
+- **Kill-switch toggle**: Button press animation (`translateY(-1px)` on hover, `translateY(1px)` on active; 0.2s all)
+- **Kill-switch state change**: Agent cards fade opacity to 0.6 (0.3s transition) when fleet is halted; restore to 1.0 when active
+- **Decision badges appearance**: Flagged and denied badges fade in with background + text color transitions (0.2s)
+- **Kill-switch glow**: Red glow on active state, green glow on restored state (shadow transitions, 0.3s)
+
+---
+
+## What is NOT Allowed
+
+Never add these, even though the library supports them:
+- **Page entrance orchestration**: Staggered animations on load, fade-in sequences, hero-section reveals
+- **Loading spinners**: Rotating loaders, bouncing indicators, or skeleton animations in content areas
+- **Parallax**: Depth-based scroll effects
+- **Decorative motion**: Any animation that plays without a corresponding state change or user action
+- **Attention-grabbing sequences**: Pulsing, flashing, or eye-catching patterns unrelated to data
+
+---
+
+## Implementation Notes
+
+- **Transition timing**: Keep all animations 150–300ms (smooth, not laggy; not so fast they feel jarring)
+- **Easing functions**: Use `ease-out` for appearances, `ease-in-out` for continuous transitions
+- **API usage**: motion.dev's declarative syntax (AnimatePresence, motion.div, Variants) generates clean, agent-friendly code
+- **Bundle impact**: motion.dev is ~40KB gzipped; no performance concerns at this scale
+- **Testing**: Verify animations trigger only on actual data/state changes, never gratuitously on component render
+
+---
+
+## Aligns With
+
+- **DESIGN.md Do's**: "Do animate interactive state changes (hover, active, kill-switch toggle) within 150–200ms"
+- **DESIGN.md Don'ts**: "Don't add decorative motion"
+- **context.md Phase 1**: motion.dev integration is a planned addition
+
+---
+
+*Motion design policy — Nexus governance 2026*
