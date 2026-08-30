@@ -62,8 +62,28 @@ def get_state() -> SimulatorState:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _random_agent() -> dict:
-    return random.choice(get_agent_definitions())
+from app.database import database
+
+async def _get_all_agents() -> list[dict]:
+    rows = await database.fetch_all("SELECT * FROM agents")
+    return [
+        {
+            "id": r["id"],
+            "name": r["name"],
+            "category": r["category"],
+            "spend_cap": float(r["spend_cap"]),
+            "rate_limit": r["rate_limit"],
+            "normal_range": {
+                "min": float(r["normal_range_min"]),
+                "max": float(r["normal_range_max"])
+            }
+        }
+        for r in rows
+    ]
+
+async def _random_agent() -> dict:
+    agents = await _get_all_agents()
+    return random.choice(agents) if agents else None
 
 
 def _normal_tx(agent: dict) -> TransactionIn:
@@ -163,8 +183,9 @@ async def _do_llm_call():
                 logger.info(f"[LLM] TX ${tx.amount} ({tx.category}) source={tx.source}")
                 await _submit(tx)
         else:
+            agents = await _get_all_agents()
             travel_agent = next(
-                (a for a in get_agent_definitions() if a["id"] == TRAVEL_AGENT_ID), None
+                (a for a in agents if a["id"] == TRAVEL_AGENT_ID), None
             )
             if travel_agent:
                 logger.warning("[LLM] Empty — using scripted fallback with source=llm")
@@ -190,7 +211,8 @@ async def _run_loop():
     global _tick_count, _agent_totals, _last_llm_time, _llm_in_progress
     logger.info("Simulator started")
     _tick_count = 0
-    _agent_totals = {a["id"]: 0 for a in get_agent_definitions()}
+    agents = await _get_all_agents()
+    _agent_totals = {a["id"]: 0 for a in agents}
     _last_llm_time = 0.0
     _llm_in_progress = False
     try:
@@ -211,7 +233,9 @@ async def _run_loop():
                 asyncio.create_task(_do_llm_call())
 
             # ── Normal agent cycle ─────────────────────────────────────
-            agent = _random_agent()
+            agent = await _random_agent()
+            if not agent:
+                continue
             _tick_count += 1
             _agent_totals[agent["id"]] = _agent_totals.get(agent["id"], 0) + 1
 
@@ -269,14 +293,14 @@ async def inject_now(
     misbehavior_type: MisbehaviorType,
 ) -> list[dict]:
     """Manual override — called by POST /simulator/inject."""
-    agents = get_agent_definitions()
+    agents = await _get_all_agents()
 
     if agent_id:
         agent = next((a for a in agents if a["id"] == agent_id), None)
         if not agent:
             raise ValueError(f"Agent not found: {agent_id}")
     else:
-        agent = _random_agent()
+        agent = await _random_agent()
 
     # Resolve "random"
     if misbehavior_type == MisbehaviorType.random:

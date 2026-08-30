@@ -15,14 +15,38 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
+from asgi_correlation_id import CorrelationIdMiddleware, correlation_id
+from pythonjsonlogger import jsonlogger
 
 from app.database import database
 from app.config import get_agent_definitions, get_policy_config
 from app.ws_manager import manager
 from app.routers import agents, transactions, kill_switch, simulator, auth
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure structured JSON logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+# Clear existing handlers
+for handler in logger.handlers[:]:
+    logger.removeHandler(handler)
+
+logHandler = logging.StreamHandler()
+formatter = jsonlogger.JsonFormatter(
+    '%(asctime)s %(levelname)s %(name)s %(correlation_id)s %(message)s'
+)
+
+# Custom filter to inject correlation ID into logs
+class CorrelationIdFilter(logging.Filter):
+    def filter(self, record):
+        record.correlation_id = correlation_id.get() or '-'
+        return True
+
+logHandler.setFormatter(formatter)
+logHandler.addFilter(CorrelationIdFilter())
+logger.addHandler(logHandler)
+
+app_logger = logging.getLogger(__name__)
 
 
 async def _seed_agents_from_config():
@@ -52,7 +76,7 @@ async def _seed_agents_from_config():
                 "max":       str(a["normal_range"]["max"]),
             },
         )
-    logger.info(f"Agents seeded: {len(get_agent_definitions())} agents")
+    app_logger.info(f"Agents seeded: {len(get_agent_definitions())} agents")
 
 
 async def _ensure_kill_switch_row():
@@ -62,25 +86,25 @@ async def _ensure_kill_switch_row():
         await database.execute(
             "INSERT INTO kill_switch_events (state, triggered_by) VALUES ('active', 'system_startup')"
         )
-        logger.info("Kill switch initialised → active")
+        app_logger.info("Kill switch initialised → active")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     await database.connect()
-    logger.info("DB connected")
+    app_logger.info("DB connected")
     await _seed_agents_from_config()
     await _ensure_kill_switch_row()
     # Validate config loads without error
     get_policy_config()
-    logger.info("Policy rules loaded")
+    app_logger.info("Policy rules loaded")
     yield
     # Shutdown
     from app.simulator import engine as sim_engine
     sim_engine.stop()
     await database.disconnect()
-    logger.info("DB disconnected")
+    app_logger.info("DB disconnected")
 
 
 app = FastAPI(
@@ -89,6 +113,12 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Add Correlation ID middleware
+app.add_middleware(CorrelationIdMiddleware)
+
+# Add Prometheus metrics exposure
+Instrumentator().instrument(app).expose(app)
 
 # CORS — open for local dev; lock down for any hosted demo
 app.add_middleware(
@@ -116,6 +146,19 @@ async def websocket_endpoint(ws: WebSocket):
             await ws.receive_text()
     except WebSocketDisconnect:
         await manager.disconnect(ws)
+
+
+# ── Developer Tools ───────────────────────────────────────────────────────────
+@app.post("/dev/reset-db", tags=["dev"])
+async def reset_database():
+    """Wipes the database and reseeds agents."""
+    app_logger.warning("Force resetting database...")
+    await database.execute("TRUNCATE TABLE transactions, kill_switch_events, agents CASCADE;")
+    await _seed_agents_from_config()
+    await _ensure_kill_switch_row()
+    # Reset spend_total in memory if necessary or let DB reload handle it
+    app_logger.warning("Database reset complete.")
+    return {"status": "ok", "message": "Database wiped and reseeded"}
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

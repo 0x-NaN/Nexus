@@ -64,6 +64,17 @@ services:
               capabilities: [gpu]
     profiles: ["gpu"]
 
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   ollama_data:
+  grafana_data:

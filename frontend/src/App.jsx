@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext.jsx';
-import Login from './pages/Login.jsx';
-import Register from './pages/Register.jsx';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import DashboardLayout from './components/DashboardLayout.jsx';
-import { ProtectedRoute, PublicRoute } from './components/AuthRoutes.jsx';
+import DeveloperDashboard from './pages/DeveloperDashboard.jsx';
 
 const API_BASE = 'http://localhost:8000';
 const WS_BASE = 'ws://localhost:8000/ws';
@@ -21,11 +18,15 @@ export default function App() {
   const [llmTestTier, setLlmTestTier] = useState('auto');
   const [llmTestScenario, setLlmTestScenario] = useState('');
 
-  useEffect(() => {
+  const fetchAgents = useCallback(() => {
     fetch(`${API_BASE}/agents`).then(r => r.json()).then(setAgents).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    fetchAgents();
     fetch(`${API_BASE}/kill-switch`).then(r => r.json()).then(d => setKillSwitchState(d.state)).catch(console.error);
     fetch(`${API_BASE}/simulator/status`).then(r => r.json()).then(setSimulatorStatus).catch(console.error);
-  }, []);
+  }, [fetchAgents]);
 
   useEffect(() => {
     const ws = new WebSocket('ws://localhost:8000/ws');
@@ -42,19 +43,75 @@ export default function App() {
 
   const isKilled = killSwitchState === 'killed';
 
+  const onToggleKillSwitch = async () => {
+    const newState = isKilled ? 'active' : 'killed';
+    try {
+      await fetch(`${API_BASE}/kill-switch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state: newState })
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  const onStartSimulator = async () => {
+    try {
+      await fetch(`${API_BASE}/simulator/start`, { method: 'POST' });
+      const r = await fetch(`${API_BASE}/simulator/status`);
+      setSimulatorStatus(await r.json());
+    } catch (e) { console.error(e); }
+  };
+
+  const onStopSimulator = async () => {
+    try {
+      await fetch(`${API_BASE}/simulator/stop`, { method: 'POST' });
+      const r = await fetch(`${API_BASE}/simulator/status`);
+      setSimulatorStatus(await r.json());
+    } catch (e) { console.error(e); }
+  };
+
+  const onTriggerMisbehavior = async (type) => {
+    try {
+      await fetch(`${API_BASE}/simulator/inject?type=${type}`, { method: 'POST' });
+    } catch (e) { console.error(e); }
+  };
+
+  const onRunLlmTest = async (tier) => {
+    setLlmTestLoading(true);
+    setLlmTestResult(null);
+    try {
+      const res = await fetch(`${API_BASE}/simulator/test-llm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_tier: tier, scenario: llmTestScenario })
+      });
+      setLlmTestResult(await res.json());
+    } catch (e) { setLlmTestResult({ error: e.toString() }); } 
+    finally { setLlmTestLoading(false); }
+  };
+
   return (
-    <div>
+    <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
       <Routes>
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+        <Route path="/dev" element={<DeveloperDashboard />} />
         <Route path="/" element={
-          <ProtectedRoute>
-            <DashboardLayout
-              agents={agents} transactions={transactions}
-              killSwitchState={killSwitchState} wsConnected={wsConnected}
-              simulatorStatus={simulatorStatus} isKilled={killSwitchState === 'killed'}
-            />
-          </ProtectedRoute>
+          <DashboardLayout
+            agents={agents} transactions={transactions}
+            killSwitchState={killSwitchState} wsConnected={wsConnected}
+            simulatorStatus={simulatorStatus} isKilled={isKilled}
+            onToggleKillSwitch={onToggleKillSwitch}
+            onStartSimulator={onStartSimulator}
+            onStopSimulator={onStopSimulator}
+            onTriggerMisbehavior={onTriggerMisbehavior}
+            onRunLlmTest={onRunLlmTest}
+            llmTestResult={llmTestResult}
+            llmTestLoading={llmTestLoading}
+            llmTestTier={llmTestTier}
+            setLlmTestTier={setLlmTestTier}
+            llmTestScenario={llmTestScenario}
+            setLlmTestScenario={setLlmTestScenario}
+            refreshAgents={fetchAgents}
+          />
         } />
       </Routes>
     </div>
