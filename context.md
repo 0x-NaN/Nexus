@@ -45,7 +45,7 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 | LLM Agent | Ollama qwen2.5:3b (local, offline) | Hosted API primary + Ollama fallback (see degradation tiers below) |
 | Auth | None (single-operator, demo) | JWT/OIDC (custom email/password, JWT access+refresh tokens) |
 | Observability | None | OpenTelemetry + Prometheus + Grafana (Phase 2) |
-| CI/CD | None | GitHub Actions (Phase 1) |
+| CI/CD | None | GitHub Actions (Phase 1) ✅ |
 | Deployment | Local only | Docker Compose — validation in progress (2026-08-24) |
 | Dev tooling | OpenCode (blind) | + Filesystem/Git/GitHub/PostgreSQL/Docker MCP |
 | MCP servers (configured) | — | filesystem, git (@cyanheads/git-mcp-server), github, postgres (@yawlabs/postgres-mcp), docker |
@@ -110,7 +110,7 @@ Graceful degradation: the policy engine doesn't care which tier generated the re
 
 ### Phase 1 — alongside this refactor
 - [x] Auth (JWT/OIDC) — real multi-user support (custom email/password, JWT access+refresh tokens, hosted login page)
-- [ ] GitHub Actions CI/CD — lint/test on push
+- [x] GitHub Actions CI/CD — lint/test on push
 - [x] MCP tooling for OpenCode (Filesystem, Git, GitHub, PostgreSQL, Docker MCPs)
 - [x] LLM degradation tiers (hosted primary → Ollama fallback → scripted last resort)
 - [ ] motion.dev integration (functional motion only — see motion-design.md)
