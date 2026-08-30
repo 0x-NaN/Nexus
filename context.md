@@ -113,7 +113,7 @@ Graceful degradation: the policy engine doesn't care which tier generated the re
 - [x] GitHub Actions CI/CD — lint/test on push
 - [x] MCP tooling for OpenCode (Filesystem, Git, GitHub, PostgreSQL, Docker MCPs)
 - [x] LLM degradation tiers (hosted primary → Ollama fallback → scripted last resort)
-- [ ] motion.dev integration (functional motion only — see motion-design.md) — IN PROGRESS (Skeuomorphism + Spatial UI)
+- [x] motion.dev integration (functional motion only — see motion-design.md) — COMPLETE (Skeuomorphism + Spatial UI)
 
 ### Phase 2 — after Phase 1 is stable
 - [ ] Observability: OpenTelemetry, Prometheus, Grafana, structured JSON logging, health/readiness endpoints, correlation IDs
