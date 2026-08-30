@@ -18,6 +18,101 @@
   --brand-blue: #3b82f6;
   --brand-blue-muted: rgba(59, 130, 246, 0.15);
 
+  /* Skeuomorphism + Spatial UI Colors */
+  --surface-elev-1: rgba(30, 30, 35, 0.9);
+  --surface-elev-2: rgba(35, 35, 42, 0.95);
+  --surface-elev-3: rgba(40, 40, 48, 0.98);
+  --surface-glass: rgba(255, 255, 255, 0.03);
+  --surface-glass-hover: rgba(255, 255, 255, 0.06);
+
+  /* Skeuomorphic surface colors */
+  --surface-knob: #1e1e22;
+  --surface-knob-highlight: #2a2a30;
+  --surface-knob-shadow: #0a0a0c;
+  --surface-panel: rgba(28, 28, 34, 0.85);
+  --surface-panel-border: rgba(255, 255, 255, 0.06);
+  --surface-panel-hover: rgba(255, 255, 255, 0.04);
+
+  /* Skeuomorphic button colors */
+  --btn-surface: #1f1f24;
+  --btn-surface-highlight: #2a2a2f;
+  --btn-surface-pressed: #18181c;
+  --btn-border: rgba(255, 255, 255, 0.08);
+  --btn-border-hover: rgba(255, 255, 255, 0.15);
+
+  /* Brand Colors */
+  --brand-amber: #f59e0b;
+  --brand-amber-deep: #d97706;
+  --brand-amber-muted: rgba(245, 158, 11, 0.15);
+
+  /* Semantic Colors */
+  --brand-green: #10b981;
+  --brand-green-deep: #059669;
+  --brand-green-muted: rgba(16, 185, 129, 0.15);
+  --brand-red: #ef4444;
+  --brand-red-deep: #dc2626;
+  --brand-red-muted: rgba(239, 68, 68, 0.15);
+  --brand-orange: #f59e0b;
+  --brand-orange-muted: rgba(245, 158, 11, 0.15);
+  --brand-blue: #3b82f6;
+  --brand-blue-muted: rgba(59, 130, 246, 0.15);
+
+  /* Surfaces */
+  --bg-primary: #09090b;
+  --bg-secondary: #18181b;
+  --bg-tertiary: #1f1f23;
+  --bg-card: rgba(24, 24, 27, 0.7);
+  --bg-card-hover: rgba(24, 24, 27, 0.9);
+
+  /* Borders & Dividers */
+  --border-primary: rgba(255, 255, 255, 0.1);
+  --border-secondary: rgba(255, 255, 255, 0.06);
+  --border-focus: var(--brand-amber);
+
+  /* Text */
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-inverse: #09090b;
+
+  /* Shadows - Skeuomorphic + Spatial */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.5);
+  --shadow-glow-red: 0 0 24px rgba(239, 68, 68, 0.4);
+  --shadow-glow-green: 0 0 24px rgba(16, 185, 129, 0.25);
+  --shadow-glow-amber: 0 0 24px rgba(245, 158, 11, 0.2);
+  
+  /* Skeuomorphic shadows */
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  --shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.3);
+  --shadow-raised-hover: 0 4px 8px rgba(0, 0, 0, 0.5), 0 12px 24px rgba(0, 0, 0, 0.4);
+  --shadow-pressed: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  --shadow-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+  /* Elevation layers for Spatial UI */
+  --elevation-1: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --elevation-2: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --elevation-3: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --elevation-4: 0 16px 48px rgba(0, 0, 0, 0.6);
+
+  /* Brand Colors */
+  --brand-amber: #f59e0b;
+  --brand-amber-deep: #d97706;
+  --brand-amber-muted: rgba(245, 158, 11, 0.15);
+
+  /* Semantic Colors */
+  --brand-green: #10b981;
+  --brand-green-deep: #059669;
+  --brand-green-muted: rgba(16, 185, 129, 0.15);
+  --brand-red: #ef4444;
+  --brand-red-deep: #dc2626;
+  --brand-red-muted: rgba(239, 68, 68, 0.15);
+  --brand-orange: #f59e0b;
+  --brand-orange-muted: rgba(245, 158, 11, 0.15);
+  --brand-blue: #3b82f6;
+  --brand-blue-muted: rgba(59, 130, 246, 0.15);
+
   /* Surfaces */
   --bg-primary: #09090b;
   --bg-secondary: #18181b;
@@ -92,9 +187,12 @@ body {
   line-height: 1.5;
   min-height: 100vh;
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(245, 158, 11, 0.04) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 40% at 70% 20%, rgba(245, 158, 11, 0.02) 0%, transparent 60%);
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(245, 158, 11, 0.025) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 70% 20%, rgba(245, 158, 11, 0.01) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
   background-attachment: fixed;
+  background-size: cover;
+  background-blend-mode: overlay;
 }
 
 #root {
@@ -928,6 +1026,458 @@ h3 { font-size: clamp(1rem, 2vw, 1.25rem); }
   border-top-color: var(--brand-amber);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+/* Skeuomorphic Button Styles */
+.btn-skeuomorphic {
+  position: relative;
+  background: var(--btn-surface);
+  border: 1px solid var(--btn-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  overflow: hidden;
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised);
+}
+
+.btn-skeuomorphic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 1;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-skeuomorphic:hover:not(:disabled) {
+  border-color: var(--btn-border-hover);
+  transform: translateY(-1px);
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised-hover);
+}
+
+.btn-skeuomorphic:hover:not(:disabled)::before {
+  opacity: 0.8;
+}
+
+.btn-skeuomorphic:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 
+    var(--shadow-pressed),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.btn-skeuomorphic:active:not(:disabled)::before {
+  opacity: 0.3;
+}
+
+.btn-skeuomorphic:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-skeuomorphic .btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-skeuomorphic-primary {
+  background: linear-gradient(180deg, var(--brand-red-deep) 0%, var(--brand-red) 100%);
+  border-color: var(--brand-red-deep);
+  color: var(--text-inverse);
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised),
+    var(--shadow-glow-red);
+}
+
+.btn-skeuomorphic-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--brand-red) 0%, var(--brand-red-deep) 100%);
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised-hover),
+    var(--shadow-glow-red);
+}
+
+.btn-skeuomorphic-secondary {
+  background: var(--btn-surface);
+  border-color: var(--btn-border);
+  color: var(--text-primary);
+}
+
+.btn-skeuomorphic-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  box-shadow: none;
+}
+
+.btn-skeuomorphic-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+/* Skeuomorphic Toggle/Switch */
+.toggle-skeuomorphic {
+  position: relative;
+  width: 56px;
+  height: 32px;
+  background: var(--btn-surface);
+  border: 1px solid var(--btn-border);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised);
+}
+
+.toggle-skeuomorphic:hover {
+  border-color: var(--btn-border-hover);
+}
+
+.toggle-skeuomorphic:has(input:checked) {
+  background: linear-gradient(180deg, var(--brand-green-deep) 0%, var(--brand-green) 100%);
+  border-color: var(--brand-green-deep);
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised),
+    var(--shadow-glow-green);
+}
+
+.toggle-skeuomorphic input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-skeuomorphic .toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #e8e8ec 100%);
+  border-radius: 50%;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 1px 0 rgba(255, 255, 255, 0.3) inset;
+  transition: transform var(--transition-base) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-skeuomorphic:has(input:checked) .toggle-thumb {
+  transform: translateX(24px);
+  background: linear-gradient(180deg, #ffffff 0%, #f0f0f5 100%);
+}
+
+.toggle-skeuomorphic:active .toggle-thumb {
+  transform: scale(0.9);
+}
+
+.toggle-skeuomorphic:has(input:checked):active .toggle-thumb {
+  transform: translateX(24px) scale(0.9);
+}
+
+/* Spatial UI Panel Elevation */
+.panel-elev-1 {
+  box-shadow: var(--elevation-1);
+}
+
+.panel-elev-2 {
+  box-shadow: var(--elevation-2);
+}
+
+.panel-elev-3 {
+  box-shadow: var(--elevation-3);
+}
+
+.panel-elev-4 {
+  box-shadow: var(--elevation-4);
+}
+
+/* Skeuomorphic Panel */
+.panel-skeuomorphic {
+  background: var(--surface-panel);
+  border: 1px solid var(--surface-panel-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 
+    var(--elevation-2),
+    var(--shadow-inset);
+  transition: all var(--transition-base);
+}
+
+.panel-skeuomorphic:hover {
+  border-color: var(--surface-panel-hover);
+  box-shadow: 
+    var(--elevation-3),
+    var(--shadow-inset);
+}
+
+.panel-skeuomorphic .panel-header {
+  border-bottom: 1px solid var(--surface-panel-border);
+}
+
+/* Skeuomorphic Kill Switch */
+.kill-switch-skeuomorphic {
+  position: relative;
+  padding: var(--space-md) var(--space-xl);
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  color: var(--text-inverse);
+  cursor: pointer;
+  border: 2px solid var(--btn-border);
+  background: linear-gradient(180deg, var(--btn-surface-highlight) 0%, var(--btn-surface) 100%);
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised),
+    var(--shadow-glow-red);
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.kill-switch-skeuomorphic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.kill-switch-skeuomorphic[data-active="true"] {
+  background: linear-gradient(180deg, var(--brand-green-deep) 0%, var(--brand-green) 100%);
+  border-color: var(--brand-green-deep);
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised),
+    var(--shadow-glow-green);
+}
+
+.kill-switch-skeuomorphic:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised-hover),
+    var(--shadow-glow-red);
+}
+
+.kill-switch-skeuomorphic[data-active="true"]:hover:not(:disabled) {
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised-hover),
+    var(--shadow-glow-green);
+}
+
+.kill-switch-skeuomorphic:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.kill-switch-skeuomorphic:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Skeuomorphic Progress Bar */
+.progress-skeuomorphic {
+  height: 8px;
+  background: var(--surface-knob);
+  border: 1px solid var(--surface-knob-shadow);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  box-shadow: 
+    var(--shadow-inset),
+    var(--shadow-raised);
+}
+
+.progress-skeuomorphic .progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--brand-green) 0%, var(--brand-green-deep) 100%);
+  box-shadow: 
+    0 0 8px rgba(16, 185, 129, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: width var(--transition-slow), background-color var(--transition-slow);
+}
+
+.progress-skeuomorphic .progress-fill.flagged {
+  background: linear-gradient(90deg, var(--brand-red) 0%, var(--brand-red-deep) 100%);
+  box-shadow: 
+    0 0 8px rgba(239, 68, 68, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.progress-skeuomorphic .progress-fill.warning {
+  background: linear-gradient(90deg, var(--brand-amber) 0%, var(--brand-amber-deep) 100%);
+  box-shadow: 
+    0 0 8px rgba(245, 158, 11, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Skeuomorphic Card */
+.card-skeuomorphic {
+  background: var(--surface-panel);
+  border: 1px solid var(--surface-panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-2);
+  transition: all var(--transition-base);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.card-skeuomorphic:hover {
+  border-color: var(--surface-panel-hover);
+  box-shadow: var(--elevation-3);
+  transform: translateY(-2px);
+}
+
+.card-skeuomorphic .card-header {
+  border-bottom: 1px solid var(--surface-panel-border);
+  padding: var(--space-md) var(--space-lg);
+}
+
+.card-skeuomorphic .card-content {
+  padding: var(--space-lg);
+}
+
+/* Skeuomorphic Input */
+.input-skeuomorphic {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) calc(var(--space-md) * 2.5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--btn-border);
+  background: var(--surface-knob);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-inset);
+}
+
+.input-skeuomorphic:focus {
+  outline: none;
+  border-color: var(--brand-amber);
+  box-shadow: 
+    var(--shadow-inset),
+    0 0 0 3px var(--brand-amber-muted);
+}
+
+.input-skeuomorphic::placeholder {
+  color: var(--text-muted);
+}
+
+/* Custom Background Texture */
+.bg-texture {
+  background-image: 
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(245, 158, 11, 0.025) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 40% at 70% 20%, rgba(245, 158, 11, 0.01) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  background-attachment: fixed;
+  background-size: cover;
+  background-blend-mode: overlay;
+}
+
+/* Motion.dev Animation Classes */
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.25s ease-out forwards;
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-scale {
+  animation: fadeInScale 0.2s ease-out forwards;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: var(--shadow-glow-red); }
+  50% { box-shadow: 0 0 32px rgba(239, 68, 68, 0.6); }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes progressFill {
+  from { width: 0%; }
+}
+
+.animate-progress {
+  animation: progressFill 0.3s ease-out forwards;
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-badge-pop {
+  animation: badgePop 0.15s ease-out forwards;
+}
+
+@keyframes killSwitchToggle {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.animate-kill-toggle {
+  animation: killSwitchToggle 0.15s ease-out;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Auth Pages */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-2xl);
 }
 
 /* Protected route transitions */
