@@ -1,5 +1,5 @@
 -- =============================================================
--- Kill Switch | Codestreet 2026
+-- Kill Switch | [RazorPay Hackathon 2026]
 -- DB Schema — schema.sql
 -- Run this first, then seed.sql
 -- =============================================================

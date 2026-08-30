@@ -1,5 +1,5 @@
 -- =============================================================
--- Kill Switch | Codestreet 2026
+-- Kill Switch | [RazorPay Hackathon 2026]
 -- DB Seed — seed.sql
 -- Run AFTER schema.sql
 -- Seeds the agents table from config/agents.yaml values.

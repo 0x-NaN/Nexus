@@ -17,10 +17,20 @@ const buttonBase = "relative inline-flex items-center justify-center gap-2 px-4 
 const skeuoShadows = "shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.2)] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]";
 
 // ── Interactive Dot Background ───────────────────────────────────────────────
+// Brutalist color palette for light mode dot interactions
+const LIGHT_PALETTE = [
+  [255, 59,  48 ], // coral red
+  [0,   122, 255], // electric blue
+  [52,  199, 89 ], // lime green
+  [175, 82,  222], // violet
+  [255, 149, 0  ], // amber
+  [255, 45,  146], // hot pink
+];
+
 const DotBackground = ({ isLightMode }) => {
   const canvasRef = useRef(null);
   const mouseRef = useRef({ x: -200, y: -200 });
-  const trailRef = useRef([]); 
+  const trailRef = useRef([]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -31,18 +41,16 @@ const DotBackground = ({ isLightMode }) => {
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     };
     resize();
     window.addEventListener('resize', resize);
 
     const SPACING = 32;
-    const RADIUS = 1.2;
-    const INFLUENCE = 120;
-    const TRAIL_LIFETIME = 60; 
+    const RADIUS = 1.4;
+    const INFLUENCE = 130;
+    const TRAIL_LIFETIME = 70;
 
     const draw = () => {
-      // Adjust width/height logic for high DPI
       const w = window.innerWidth;
       const h = window.innerHeight;
       ctx.clearRect(0, 0, w, h);
@@ -56,13 +64,12 @@ const DotBackground = ({ isLightMode }) => {
         if (trail[i].age > TRAIL_LIFETIME) trail.splice(i, 1);
       }
 
-      const baseDotAlpha = isLightMode ? 0.08 : 0.12;
-      const litR = isLightMode ? 40 : 220;
-      const litG = isLightMode ? 40 : 220;
-      const litB = isLightMode ? 40 : 220;
+      const cols = Math.ceil(w / SPACING);
 
-      for (let x = SPACING; x < w; x += SPACING) {
-        for (let y = SPACING; y < h; y += SPACING) {
+      for (let xi = 1; xi * SPACING < w; xi++) {
+        for (let yi = 1; yi * SPACING < h; yi++) {
+          const x = xi * SPACING;
+          const y = yi * SPACING;
           const dMouse = Math.hypot(x - mx, y - my);
           let brightness = 0;
 
@@ -79,12 +86,39 @@ const DotBackground = ({ isLightMode }) => {
             }
           }
 
-          const alpha = baseDotAlpha + brightness * (isLightMode ? 0.3 : 0.6);
-          const r = RADIUS + brightness * 1.5;
+          const r = RADIUS + brightness * 2.5;
+
+          let fillStyle;
+          if (isLightMode) {
+            if (brightness > 0.01) {
+              // Pick a colour from the palette based on grid position
+              const palIdx = (xi * 3 + yi * 7) % LIGHT_PALETTE.length;
+              const [pr, pg, pb] = LIGHT_PALETTE[palIdx];
+              const alpha = 0.15 + brightness * 0.85;
+              fillStyle = `rgba(${pr},${pg},${pb},${alpha})`;
+
+              // Glow ring at high brightness
+              if (brightness > 0.5) {
+                ctx.beginPath();
+                ctx.arc(x, y, r + 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${pr},${pg},${pb},${brightness * 0.15})`;
+                ctx.fill();
+              }
+            } else {
+              // Resting dots: subtle coloured tint based on position
+              const palIdx = (xi * 3 + yi * 7) % LIGHT_PALETTE.length;
+              const [pr, pg, pb] = LIGHT_PALETTE[palIdx];
+              fillStyle = `rgba(${pr},${pg},${pb},0.07)`;
+            }
+          } else {
+            // Dark mode: white dots
+            const alpha = 0.10 + brightness * 0.60;
+            fillStyle = `rgba(220,220,220,${alpha})`;
+          }
 
           ctx.beginPath();
           ctx.arc(x, y, r, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${litR}, ${litG}, ${litB}, ${alpha})`;
+          ctx.fillStyle = fillStyle;
           ctx.fill();
         }
       }
@@ -101,7 +135,7 @@ const DotBackground = ({ isLightMode }) => {
       const last = trailRef.current[trailRef.current.length - 1];
       if (!last || Math.hypot(x - last.x, y - last.y) > 3) {
         trailRef.current.push({ x, y, age: 0 });
-        if (trailRef.current.length > 100) trailRef.current.shift();
+        if (trailRef.current.length > 120) trailRef.current.shift();
       }
     };
 

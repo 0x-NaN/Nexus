@@ -23,7 +23,7 @@
 
 Nexus sits between any AI agent and the transaction it wants to execute, evaluating every request against policy before allowing it through. An operator can instantly halt the entire fleet via a kill switch. Every decision — allowed, denied, or flagged — is permanently logged with a reason and exportable as CSV.
 
-**Originally built for Codestreet 2026 (AmEx hackathon, Theme 5: Governance Layer for Financial Agents). Now refactored toward an industry-level open-source MVP.**
+**Originally built for [RazorPay Hackathon 2026] (Theme: Governance Layer for Financial Agents). Now refactored toward an industry-level open-source MVP.**
 
 ---
 
