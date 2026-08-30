@@ -164,5 +164,45 @@ class ErrorOut(BaseModel):
     code:   str
 
 
+# ── Auth schemas ────────────────────────────────────────────────────────────────
+
+class UserOut(BaseModel):
+    id:          str
+    email:       str
+    full_name:   Optional[str]
+    is_active:   bool
+    created_at:  datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UserCreate(BaseModel):
+    email:       str
+    password:    str
+    full_name:   Optional[str] = None
+
+
+class UserLogin(BaseModel):
+    email:       str
+    password:    str
+
+
+class Token(BaseModel):
+    access_token:  str
+    refresh_token: str
+    token_type:    str = "bearer"
+
+
+class TokenPayload(BaseModel):
+    sub:   str
+    exp:   int
+    type:  str  # "access" or "refresh"
+
+
+class TokenRefresh(BaseModel):
+    refresh_token: str
+
+
 # resolve forward refs
 AgentDetailOut.model_rebuild()

@@ -10,7 +10,23 @@ DROP TABLE IF EXISTS kill_switch_events CASCADE;
 DROP TABLE IF EXISTS agents CASCADE;
 
 -- =============================================================
--- 1. agents
+-- 1. users
+-- Authentication and user management.
+-- =============================================================
+CREATE TABLE users (
+  id            VARCHAR(50)    PRIMARY KEY,
+  email         VARCHAR(255)   NOT NULL UNIQUE,
+  password_hash VARCHAR(255)   NOT NULL,
+  full_name     VARCHAR(255),
+  is_active     BOOLEAN        NOT NULL DEFAULT TRUE,
+  created_at    TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_email ON users (email);
+
+-- =============================================================
+-- 2. agents
 -- Reference table. Seeded from config/agents.yaml at startup.
 -- NOT writable via API after startup — read-only from the
 -- application's perspective post-seed.

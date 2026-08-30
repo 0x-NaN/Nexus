@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import database
 from app.config import get_agent_definitions, get_policy_config
 from app.ws_manager import manager
-from app.routers import agents, transactions, kill_switch, simulator
+from app.routers import agents, transactions, kill_switch, simulator, auth
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -103,6 +103,7 @@ app.include_router(agents.router)
 app.include_router(transactions.router)
 app.include_router(kill_switch.router)
 app.include_router(simulator.router)
+app.include_router(auth.router)
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
