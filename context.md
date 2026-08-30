@@ -43,7 +43,7 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 | Primary DB | PostgreSQL | — |
 | Real-time | WebSockets | — |
 | LLM Agent | Ollama qwen2.5:3b (local, offline) | Hosted API primary + Ollama fallback (see degradation tiers below) |
-| Auth | None (single-operator, demo) | JWT/OIDC |
+| Auth | None (single-operator, demo) | JWT/OIDC (custom email/password, JWT access+refresh tokens) |
 | Observability | None | OpenTelemetry + Prometheus + Grafana (Phase 2) |
 | CI/CD | None | GitHub Actions (Phase 1) |
 | Deployment | Local only | Docker Compose — validation in progress (2026-08-24) |
@@ -109,7 +109,7 @@ Graceful degradation: the policy engine doesn't care which tier generated the re
 ## Planned Additions (prioritized)
 
 ### Phase 1 — alongside this refactor
-- [ ] Auth (JWT/OIDC) — real multi-user support
+- [x] Auth (JWT/OIDC) — real multi-user support (custom email/password, JWT access+refresh tokens, hosted login page)
 - [ ] GitHub Actions CI/CD — lint/test on push
 - [x] MCP tooling for OpenCode (Filesystem, Git, GitHub, PostgreSQL, Docker MCPs)
 - [x] LLM degradation tiers (hosted primary → Ollama fallback → scripted last resort)
