@@ -52,12 +52,14 @@ async def evaluate_transaction(tx: TransactionIn):
 
 @router.get("/transactions", response_model=TransactionListOut)
 async def list_transactions(
-    agent_id:    Optional[str]  = Query(None),
-    decision:    Optional[str]  = Query(None),
-    is_injected: Optional[bool] = Query(None),
-    limit:       int            = Query(100, ge=1, le=1000),
-    offset:      int            = Query(0, ge=0),
-    since:       Optional[str]  = Query(None),
+    agent_id:        Optional[str]  = Query(None),
+    decision:        Optional[str]  = Query(None),
+    is_injected:     Optional[bool] = Query(None),
+    # Graceful degradation (fallback_status filter) deferred — see CONTEXT.md.
+    # fallback_status: Optional[str]  = Query(None, pattern="^(pending|resolved|failed)$"),
+    limit:           int            = Query(100, ge=1, le=1000),
+    offset:          int            = Query(0, ge=0),
+    since:           Optional[str]  = Query(None),
 ):
     filters = []
     params: dict = {}
@@ -71,6 +73,9 @@ async def list_transactions(
     if is_injected is not None:
         filters.append("t.is_injected_misbehavior = :is_injected")
         params["is_injected"] = is_injected
+    # if fallback_status:
+    #     filters.append("t.fallback_status = :fallback_status")
+    #     params["fallback_status"] = fallback_status
     if since:
         filters.append("t.timestamp >= :since")
         params["since"] = since
@@ -104,11 +109,13 @@ async def list_transactions(
 
 @router.get("/transactions/export")
 async def export_transactions(
-    agent_id:    Optional[str]  = Query(None),
-    decision:    Optional[str]  = Query(None),
-    is_injected: Optional[bool] = Query(None),
-    since:       Optional[str]  = Query(None),
-    format:      str            = Query("json", pattern="^(json|csv)$"),
+    agent_id:        Optional[str]  = Query(None),
+    decision:        Optional[str]  = Query(None),
+    is_injected:     Optional[bool] = Query(None),
+    # Graceful degradation (fallback_status filter) deferred — see CONTEXT.md.
+    # fallback_status: Optional[str]  = Query(None, pattern="^(pending|resolved|failed)$"),
+    since:           Optional[str]  = Query(None),
+    format:          str            = Query("json", pattern="^(json|csv)$"),
 ):
     filters = []
     params: dict = {}
@@ -122,6 +129,9 @@ async def export_transactions(
     if is_injected is not None:
         filters.append("t.is_injected_misbehavior = :is_injected")
         params["is_injected"] = is_injected
+    # if fallback_status:
+    #     filters.append("t.fallback_status = :fallback_status")
+    #     params["fallback_status"] = fallback_status
     if since:
         filters.append("t.timestamp >= :since")
         params["since"] = since

@@ -182,23 +182,18 @@ async def _do_llm_call():
             for tx in txs:
                 logger.info(f"[LLM] TX ${tx.amount} ({tx.category}) source={tx.source}")
                 await _submit(tx)
-        else:
-            agents = await _get_all_agents()
-            travel_agent = next(
-                (a for a in agents if a["id"] == TRAVEL_AGENT_ID), None
-            )
-            if travel_agent:
-                logger.warning("[LLM] Empty — using scripted fallback with source=llm")
-                tx = TransactionIn(
-                    agent_id=TRAVEL_AGENT_ID,
-                    amount=Decimal(str(round(random.uniform(
-                        travel_agent["normal_range"]["min"],
-                        travel_agent["normal_range"]["max"]
-                    ), 2))),
-                    category=travel_agent["category"],
-                    source="llm",
-                )
-                await _submit(tx)
+        # ── Scripted degradation fallback — DEFERRED (see CONTEXT.md) ──────────
+        # fetch_llm_transactions() now handles the Ollama → scripted path itself,
+        # so this redundant fallback branch is removed.
+        # else:
+        #     agents = await _get_all_agents()
+        #     travel_agent = next(
+        #         (a for a in agents if a["id"] == TRAVEL_AGENT_ID), None
+        #     )
+        #     if travel_agent:
+        #         logger.warning("[LLM] Empty — using scripted fallback with source=llm")
+        #         tx = TransactionIn(...)
+        #         await _submit(tx)
     except Exception as e:
         logger.error(f"[LLM] Unknown error in LLM task: {e}")
     finally:

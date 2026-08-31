@@ -84,6 +84,10 @@ class TransactionOut(BaseModel):
     is_injected_misbehavior: bool
     misbehavior_type:       Optional[str]
     source:                 LLMSource = LLMSource.sim
+    # Graceful degradation (fallback fields) deferred — see CONTEXT.md.
+    # fallback_status:        Optional[str] = None
+    # fallback_reason:        Optional[str] = None
+    # resolved_at:            Optional[datetime] = None
 
     class Config:
         from_attributes = True

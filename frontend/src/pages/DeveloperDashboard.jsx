@@ -10,8 +10,13 @@ export default function DeveloperDashboard() {
   const [formData, setFormData] = useState({ name: '', category: '', spend_cap: 100 });
   const [adding, setAdding] = useState(false);
   
-  const [resolving, setResolving] = useState(false);
-  const [resolveProgress, setResolveProgress] = useState(0);
+  // ── Graceful degradation (fallback resolve) — DEFERRED — see CONTEXT.md ──
+  // const [resolving, setResolving] = useState(false);
+  // const [resolveError, setResolveError] = useState(null);
+  // const [resolveProgress, setResolveProgress] = useState(0);
+  // const [replayCurrent, setReplayCurrent] = useState(0);
+  // const [replayTotal, setReplayTotal] = useState(0);
+  // const [replayReplayed, setReplayReplayed] = useState(0);
 
   const [metrics, setMetrics] = useState(null);
 
@@ -28,6 +33,10 @@ export default function DeveloperDashboard() {
       .then(setMetrics)
       .catch(console.error);
   };
+
+  // ── Graceful degradation (fallback resolve + replay WS) — DEFERRED — see CONTEXT.md ──
+  // const resetResolve = () => { ... };
+  // const handleResolve = async () => { ... };
 
   useEffect(() => {
     fetchAgents();
@@ -53,8 +62,7 @@ export default function DeveloperDashboard() {
     }
   };
 
-  // ... (keep the agent handlers the same)
-  const handleAddAgent = async (e) => {
+const handleAddAgent = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.category || !formData.spend_cap) return;
     setAdding(true);
@@ -109,7 +117,7 @@ export default function DeveloperDashboard() {
             <Database size={18} /> Chaos Engineering & Resets
           </h2>
           <p className="text-sm text-zinc-500 mb-6 relative z-10">
-            Simulate database connection drops to observe the fallback JSONL audit log system in action, or forcefully reset the agent seeds.
+            Simulate database connection drops, or forcefully reset the agent seeds.
           </p>
 
           <div className="flex flex-col gap-3 relative z-10">
@@ -172,58 +180,11 @@ export default function DeveloperDashboard() {
                 </div>
               </div>
 
-              <div className="bg-black/40 border border-white/5 p-4 rounded-lg flex flex-col justify-between group shadow-inner relative">
-                <span className="text-xs text-zinc-500 uppercase font-semibold">Fallback Pending</span>
-                <div className="flex justify-between items-end mt-1">
-                  <div className="text-2xl font-bold text-zinc-200">
-                    {metrics.pending_fallback_transactions}
-                    <span className="text-xs text-zinc-600 ml-1">tx</span>
-                  </div>
-                  {metrics.pending_fallback_transactions > 0 && !resolving && (
-                    <button 
-                      onClick={async () => {
-                        setResolving(true);
-                        setResolveProgress(0);
-                        
-                        await fetch('http://localhost:8000/dev/fallbacks/resolve', { method: 'POST' });
-                        
-                        let progress = 0;
-                        const interval = setInterval(() => {
-                          progress += Math.random() * 15 + 5;
-                          if (progress >= 100) {
-                            clearInterval(interval);
-                            setResolveProgress(100);
-                            setTimeout(() => {
-                              setResolving(false);
-                              fetchMetrics();
-                            }, 500);
-                          } else {
-                            setResolveProgress(progress);
-                          }
-                        }, 250);
-                      }}
-                      className="text-[10px] bg-emerald-900/40 hover:bg-emerald-800/60 text-emerald-400 border border-emerald-900/50 px-2 py-1 rounded font-bold transition-colors shadow-inner"
-                    >
-                      RESOLVE
-                    </button>
-                  )}
+              <div className="bg-black/40 border border-white/5 p-4 rounded-lg flex flex-col justify-between group shadow-inner">
+                <span className="text-xs text-zinc-500 uppercase font-semibold">Graceful Degradation</span>
+                <div className="text-sm font-bold text-zinc-500 mt-2 italic">
+                  Deferred to future work
                 </div>
-                
-                {/* Skeuomorphic Progress Track */}
-                {resolving && (
-                  <div className="absolute bottom-2 left-4 right-4">
-                    <div className="w-full bg-black/80 rounded-full h-1.5 border border-white/5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)] transition-all duration-200 ease-out"
-                        style={{ width: `${Math.min(resolveProgress, 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between mt-1 px-1">
-                      <span className="text-[8px] text-emerald-500 font-bold animate-pulse">SUB-AGENT PROCESSING...</span>
-                      <span className="text-[8px] text-zinc-500 font-mono">{Math.round(resolveProgress)}%</span>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="bg-black/40 border border-white/5 p-4 rounded-lg flex flex-col justify-between group shadow-inner">

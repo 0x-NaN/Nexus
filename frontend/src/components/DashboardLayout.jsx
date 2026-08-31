@@ -173,6 +173,9 @@ const Badge = ({ children, variant = 'neutral', className }) => {
     sim: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20',
     'llm': 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
     'llm-hosted': 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20',
+    'fallback-pending': 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-[0_0_8px_rgba(245,158,11,0.3)]',
+    'fallback-resolved': 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.3)]',
+    'fallback-failed': 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_8px_rgba(244,63,94,0.3)]',
   };
   return (
     <span className={cn(`px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider`, variants[variant] || variants.neutral, className)}>
@@ -279,44 +282,75 @@ const ThemeKnob = ({ isLightMode, onToggle }) => {
   );
 };
 
-const TransactionRow = ({ tx }) => (
-  <motion.div
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, scale: 0.95 }}
-    className={cn(
-      "p-4 rounded-lg bg-foreground/5 border border-border/30 shadow-inner backdrop-blur-sm",
-      "flex flex-col gap-2 relative z-10"
-    )}
-  >
-    <div className="flex justify-between items-start">
-      <div className="flex items-center gap-2">
-        <span className="font-medium text-sm text-foreground/90">{tx.agent_name || tx.agent_id}</span>
-        <Badge variant={tx.source === 'llm-hosted' ? 'llm-hosted' : (tx.source === 'llm-local' ? 'llm' : 'sim')}>
-          {tx.source === 'llm-hosted' ? 'LLM ☁' : (tx.source === 'llm-local' ? 'LLM' : 'SIM')}
-        </Badge>
-      </div>
-      <Badge variant={tx.decision}>{tx.decision}</Badge>
-    </div>
+const TransactionRow = ({ tx }) => {
+  // ── Graceful degradation (DEG badge) — DEFERRED — see CONTEXT.md ──
+  // const isFallback = tx.fallback_status === 'pending' || tx.fallback_status === 'resolved' || tx.fallback_status === 'failed';
+  // const fallbackVariant = tx.fallback_status === 'pending' ? 'fallback-pending' : 
+  //                         tx.fallback_status === 'resolved' ? 'fallback-resolved' : 
+  //                         tx.fallback_status === 'failed' ? 'fallback-failed' : null;
+  // const fallbackLabel = tx.fallback_status === 'pending' ? 'DEG' : 
+  //                       tx.fallback_status === 'resolved' ? 'DEG ✓' : 
+  //                       tx.fallback_status === 'failed' ? 'DEG ✗' : null;
 
-    <div className="flex justify-between items-center text-xs text-muted-foreground">
-      <span>{tx.category} • <span className="font-mono text-foreground/80">${parseFloat(tx.amount).toFixed(2)}</span></span>
-      <span className="font-mono">{new Date(tx.timestamp).toLocaleTimeString()}</span>
-    </div>
-
-    {tx.reason && (
-      <div className="text-xs text-rose-600 dark:text-rose-400/80 bg-rose-500/10 px-2 py-1.5 rounded mt-1 border border-rose-500/20">
-        {tx.reason.replace(/_/g, ' ')}
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={cn(
+        "p-4 rounded-lg bg-foreground/5 border border-border/30 shadow-inner backdrop-blur-sm",
+        "flex flex-col gap-2 relative z-10"
+      )}
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-medium text-sm text-foreground/90">{tx.agent_name || tx.agent_id}</span>
+          <Badge variant={tx.source === 'llm-hosted' ? 'llm-hosted' : (tx.source === 'llm-local' ? 'llm' : 'sim')}>
+            {tx.source === 'llm-hosted' ? 'LLM ☁' : (tx.source === 'llm-local' ? 'LLM' : 'SIM')}
+          </Badge>
+          {/* {isFallback && (
+            <Badge variant={fallbackVariant}>
+              {fallbackLabel}
+            </Badge>
+          )} */}
+        </div>
+        <Badge variant={tx.decision}>{tx.decision}</Badge>
       </div>
-    )}
 
-    {tx.is_injected_misbehavior && (
-      <div className="text-xs text-amber-600 dark:text-amber-400/80 bg-amber-500/10 px-2 py-1.5 rounded mt-1 border border-amber-500/20">
-        [Injected: {tx.misbehavior_type}]
+      <div className="flex justify-between items-center text-xs text-muted-foreground">
+        <span>{tx.category} • <span className="font-mono text-foreground/80">${parseFloat(tx.amount).toFixed(2)}</span></span>
+        <span className="font-mono">{new Date(tx.timestamp).toLocaleTimeString()}</span>
       </div>
-    )}
-  </motion.div>
-);
+
+      {tx.reason && (
+        <div className="text-xs text-rose-600 dark:text-rose-400/80 bg-rose-500/10 px-2 py-1.5 rounded mt-1 border border-rose-500/20">
+          {tx.reason.replace(/_/g, ' ')}
+        </div>
+      )}
+
+      {tx.is_injected_misbehavior && (
+        <div className="text-xs text-amber-600 dark:text-amber-400/80 bg-amber-500/10 px-2 py-1.5 rounded mt-1 border border-amber-500/20">
+          [Injected: {tx.misbehavior_type}]
+        </div>
+      )}
+
+      {/* {isFallback && tx.fallback_reason && (
+        <div className="text-xs text-amber-600 dark:text-amber-400/80 bg-amber-500/10 px-2 py-1.5 rounded mt-1 border border-amber-500/20 flex items-center gap-2">
+          <span className="font-mono">Fallback:</span>
+          <span>{tx.fallback_reason.replace(/_/g, ' ')}</span>
+          {tx.fallback_status === 'resolved' && tx.resolved_at && (
+            <span className="text-emerald-500 font-mono ml-2">
+              Resolved: {new Date(tx.resolved_at).toLocaleTimeString()}
+            </span>
+          )}
+          {tx.fallback_status === 'failed' && (
+            <span className="text-rose-500 font-mono ml-2">Replay Failed</span>
+          )}
+        </div>
+      )} */}
+    </motion.div>
+  );
+};
 
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
   <button onClick={onClick} className={cn(
@@ -418,9 +452,25 @@ export default function DashboardLayout({
   }, [isLightMode]);
 
   const handleExportTrail = () => {
-    const lines = transactions.map(tx => 
-      `[${new Date(tx.timestamp).toLocaleString()}] ${tx.decision.toUpperCase()} | Agent: ${tx.agent_name || tx.agent_id} | Amount: $${tx.amount} | Reason: ${tx.reason || 'N/A'}`
-    );
+    const lines = transactions.map(tx => {
+      let line = `[${new Date(tx.timestamp).toLocaleString()}] ${tx.decision.toUpperCase()} | Agent: ${tx.agent_name || tx.agent_id} | Amount: $${tx.amount} | Reason: ${tx.reason || 'N/A'}`;
+      
+      // Graceful degradation (fallback tags) deferred — see CONTEXT.md.
+      // if (tx.fallback_status) {
+      //   const fallbackLabel = tx.fallback_status === 'pending' ? 'DEG (PENDING)' : 
+      //                         tx.fallback_status === 'resolved' ? 'DEG (RESOLVED)' : 
+      //                         tx.fallback_status === 'failed' ? 'DEG (FAILED)' : 'DEG';
+      //   line += ` | Fallback: ${fallbackLabel}`;
+      //   if (tx.fallback_reason) {
+      //     line += ` (${tx.fallback_reason})`;
+      //   }
+      //   if (tx.fallback_status === 'resolved' && tx.resolved_at) {
+      //     line += ` | Resolved: ${new Date(tx.resolved_at).toLocaleString()}`;
+      //   }
+      // }
+      
+      return line;
+    });
     const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

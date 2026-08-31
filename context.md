@@ -42,7 +42,7 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 | Policy | Python (in-process) | — |
 | Primary DB | PostgreSQL | — |
 | Real-time | WebSockets | — |
-| LLM Agent | Ollama qwen2.5:3b (local, offline) | Hosted API primary + Ollama fallback |
+| LLM Agent | Ollama qwen2.5:3b (local, offline) | Hosted API fallback — deferred (graceful degradation) |
 | Auth | Temporarily Disabled | JWT/OIDC implemented but bypassed. Deferred to endgame. |
 | Deployment | Local only | Docker Compose — validation in progress |
 | Dev tooling | OpenCode (blind) + Antigravity CLI | 5 MCPs configured in both tools |
@@ -90,7 +90,7 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 ### Phase 4 — Future Works & Ideas
 1. **Adaptive anomaly detection**: Flag statistically unusual transactions per agent even if within hard limits.
 2. **Agent trust score**: Decaying reputation score per agent based on historical violation rate.
-3. **Graceful Degradation**: Solidify the tier system (Hosted API → Local Ollama → Scripted fallback). Currently just an idea/partially implemented.
+3. **Graceful Degradation** — DEFERRED (removed): The tier system (Hosted API → Local Ollama → Scripted fallback) and the transaction fallback/DEG logging (Postgres→JSONL, resolve button, DEG badges, TXT tags) were both commented out of the codebase and moved here. Rebuild when the core loop is stable.
 4. **Dynamic Governance Compliance**: Ability to adjust or change the mechanics of an agent's working (e.g., what gets flagged) dynamically based on PDF or text entries uploaded by users that comply with governance acts like DPDP or EU Regulations.
 5. **Authentication (JWT/OIDC)**: Fix the "Failed to fetch" (CORS / base URL issue) and fully support multi-tenant accounts. Currently deferred.
 

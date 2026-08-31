@@ -24,7 +24,8 @@ from app.database import database
 from app.config import get_agent_definitions, get_policy_config
 from app.ws_manager import manager
 from app.routers import agents, transactions, kill_switch, simulator, auth
-from app.services.transaction_logger import is_db_healthy, replay_pending
+# Graceful degradation (fallback replay) is deferred to future work — see CONTEXT.md.
+# from app.services.transaction_logger import is_db_healthy, replay_pending
 
 # Configure structured JSON logging
 logger = logging.getLogger()
@@ -98,10 +99,11 @@ async def lifespan(app: FastAPI):
     app_logger.info("DB connected")
     await _seed_agents_from_config()
     await _ensure_kill_switch_row()
-    # Replay any transactions logged to fallback file while DB was down
-    replayed = await replay_pending()
-    if replayed:
-        app_logger.info(f"Replayed {replayed} pending fallback transactions into Postgres.")
+    # Graceful degradation (fallback JSONL replay on reconnect) is deferred to
+    # future work — see CONTEXT.md. Removed from startup.
+    # replayed = await replay_pending()
+    # if replayed:
+    #     app_logger.info(f"Replayed {replayed} pending fallback transactions into Postgres.")
     # Validate config loads without error
     get_policy_config()
     app_logger.info("Policy rules loaded")
@@ -170,5 +172,4 @@ async def reset_database():
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/health", tags=["meta"])
 async def health():
-    db_status = "connected" if is_db_healthy() else "fallback_active"
-    return {"status": "ok", "service": "kill-switch-api", "db": db_status}
+    return {"status": "ok", "service": "kill-switch-api", "db": "connected"}

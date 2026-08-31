@@ -13,10 +13,11 @@ export default function App() {
   const [wsConnected, setWsConnected] = useState(false);
   const [simulatorStatus, setSimulatorStatus] = useState(null);
 
-  const [llmTestResult, setLlmTestResult] = useState(null);
-  const [llmTestLoading, setLlmTestLoading] = useState(false);
-  const [llmTestTier, setLlmTestTier] = useState('auto');
-  const [llmTestScenario, setLlmTestScenario] = useState('');
+  // ── LLM degradation tester — DEFERRED (graceful degradation) — see CONTEXT.md ──
+  // const [llmTestResult, setLlmTestResult] = useState(null);
+  // const [llmTestLoading, setLlmTestLoading] = useState(false);
+  // const [llmTestTier, setLlmTestTier] = useState('auto');
+  // const [llmTestScenario, setLlmTestScenario] = useState('');
 
   const fetchAgents = useCallback(() => {
     fetch(`${API_BASE}/agents`).then(r => r.json()).then(setAgents).catch(console.error);
@@ -34,7 +35,17 @@ export default function App() {
     ws.onclose = () => setWsConnected(false);
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
-      if (msg.type === 'transaction_event') setTransactions(p => [msg.data, ...p].slice(0, 100));
+      if (msg.type === 'transaction_event') {
+        setTransactions(p => {
+          const existing = p.findIndex(t => t.id === msg.data.id);
+          if (existing >= 0) {
+            const updated = [...p];
+            updated[existing] = { ...updated[existing], ...msg.data };
+            return updated;
+          }
+          return [msg.data, ...p].slice(0, 100);
+        });
+      }
       else if (msg.type === 'kill_switch_event') setKillSwitchState(msg.data.state);
       else if (msg.type === 'agent_update') setAgents(p => p.map(a => a.id === msg.data.agent_id ? { ...a, spend_total: parseFloat(msg.data.spend_total) } : a));
     };
@@ -76,19 +87,9 @@ export default function App() {
     } catch (e) { console.error(e); }
   };
 
-  const onRunLlmTest = async (tier) => {
-    setLlmTestLoading(true);
-    setLlmTestResult(null);
-    try {
-      const res = await fetch(`${API_BASE}/simulator/test-llm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target_tier: tier, scenario: llmTestScenario })
-      });
-      setLlmTestResult(await res.json());
-    } catch (e) { setLlmTestResult({ error: e.toString() }); } 
-    finally { setLlmTestLoading(false); }
-  };
+  // ── LLM degradation test runner — DEFERRED (graceful degradation) — see CONTEXT.md ──
+  // const onRunLlmTest = async (tier) => {
+  //   ...
 
   return (
     <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
@@ -103,13 +104,6 @@ export default function App() {
             onStartSimulator={onStartSimulator}
             onStopSimulator={onStopSimulator}
             onTriggerMisbehavior={onTriggerMisbehavior}
-            onRunLlmTest={onRunLlmTest}
-            llmTestResult={llmTestResult}
-            llmTestLoading={llmTestLoading}
-            llmTestTier={llmTestTier}
-            setLlmTestTier={setLlmTestTier}
-            llmTestScenario={llmTestScenario}
-            setLlmTestScenario={setLlmTestScenario}
             refreshAgents={fetchAgents}
           />
         } />

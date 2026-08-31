@@ -81,6 +81,9 @@ async def log_transaction(
         "is_injected_misbehavior": is_injected,
         "misbehavior_type": misbehavior_type,
         "source": source,
+        "fallback_status": None,
+        "fallback_reason": None,
+        "resolved_at": None,
     }
 
     try:
@@ -91,22 +94,27 @@ async def log_transaction(
             """
             INSERT INTO transactions
               (id, agent_id, amount, category, timestamp, decision, reason,
-               is_injected_misbehavior, misbehavior_type, source)
+               is_injected_misbehavior, misbehavior_type, source,
+               fallback_status, fallback_reason, resolved_at)
             VALUES
               (:id, :agent_id, :amount, :category, :timestamp, :decision, :reason,
-               :is_injected, :mtype, :source)
+               :is_injected, :mtype, :source,
+               :fallback_status, :fallback_reason, :resolved_at)
             """,
             {
-                "id":          record["id"],
-                "agent_id":    record["agent_id"],
-                "amount":      record["amount"],
-                "category":    record["category"],
-                "timestamp":   timestamp,
-                "decision":    record["decision"],
-                "reason":      record["reason"],
-                "is_injected": record["is_injected_misbehavior"],
-                "mtype":       record["misbehavior_type"],
-                "source":      record["source"],
+                "id":              record["id"],
+                "agent_id":        record["agent_id"],
+                "amount":          record["amount"],
+                "category":        record["category"],
+                "timestamp":       timestamp,
+                "decision":        record["decision"],
+                "reason":          record["reason"],
+                "is_injected":     record["is_injected_misbehavior"],
+                "mtype":           record["misbehavior_type"],
+                "source":          record["source"],
+                "fallback_status": record["fallback_status"],
+                "fallback_reason": record["fallback_reason"],
+                "resolved_at":     record["resolved_at"],
             },
         )
         # Postgres write succeeded — mark healthy
@@ -121,90 +129,52 @@ async def log_transaction(
             pass
 
     except Exception as pg_err:
-        # Postgres write failed — fall back to JSONL file
+        # ── Graceful degradation (JSONL fallback) is DEFERRED to future work ──
+        # When re-enabled, this branch recorded the transaction to a local JSONL
+        # file (FALLBACK_LOG_PATH), marked fallback_status="pending", and
+        # broadcast a db_status="fallback_active" event. See CONTEXT.md.
         logger.error(
             f"[transaction_logger] Postgres write failed ({pg_err}). "
-            f"Falling back to JSONL file: {FALLBACK_LOG_PATH}"
+            f"Transaction is NOT durably stored (graceful degradation deferred)."
         )
         _db_healthy = False
-        # Notify front‑end of fallback state
-        from app.ws_manager import manager
-        await manager.broadcast({"type": "db_status", "db": "fallback_active"})
-        _append_fallback(record)
+        # # Notify front-end of fallback state (deferred)
+        # from app.ws_manager import manager
+        # await manager.broadcast({"type": "db_status", "db": "fallback_active"})
+        #
+        # # Mark record as fallback pending (deferred)
+        # record["fallback_status"] = "pending"
+        # record["fallback_reason"] = "db_disconnected"
+        #
+        # # Broadcast fallback transaction event to Live Audit Trail (deferred)
+        # await manager.broadcast({"type": "transaction_event", "data": record})
+        #
+        # _append_fallback(record)
 
 
 def _append_fallback(record: dict) -> None:
-    """Append a single transaction record as a JSON line to the fallback file."""
-    try:
-        with FALLBACK_LOG_PATH.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(record, default=str) + "\n")
-    except Exception as file_err:
-        # Nothing left to do — log and move on. Policy is already decided.
-        logger.critical(
-            f"[transaction_logger] FALLBACK FILE WRITE ALSO FAILED: {file_err}. "
-            f"Transaction {record.get('id')} is NOT durably stored."
-        )
+    """[DEFERRED — graceful degradation] Append a record to the fallback JSONL file."""
+    # Graceful degradation is deferred to future work (see CONTEXT.md).
+    # try:
+    #     with FALLBACK_LOG_PATH.open("a", encoding="utf-8") as f:
+    #         f.write(json.dumps(record, default=str) + "\n")
+    # except Exception as file_err:
+    #     logger.critical(
+    #         f"[transaction_logger] FALLBACK FILE WRITE ALSO FAILED: {file_err}. "
+    #         f"Transaction {record.get('id')} is NOT durably stored."
+    #     )
+    pass
 
 
-async def replay_pending() -> int:
+async def replay_pending(broadcast_progress: bool = True) -> int:
     """
-    Replay any transactions that were written to the fallback file while Postgres
-    was unavailable. Inserts them into Postgres in order, then clears the file.
-
-    Returns the count of replayed rows. Call this after confirming DB reconnect.
+    [DEFERRED — graceful degradation] Replay any transactions written to the
+    fallback file while Postgres was unavailable. Kept as a no-op stub so
+    existing imports / routes still resolve. See CONTEXT.md.
     """
-    global _db_healthy
-
-    if not FALLBACK_LOG_PATH.exists():
-        return 0
-
-    lines = FALLBACK_LOG_PATH.read_text(encoding="utf-8").splitlines()
-    if not lines:
-        return 0
-
-    replayed = 0
-    failed_lines = []
-
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            record = json.loads(line)
-            await database.execute(
-                """
-                INSERT INTO transactions
-                  (id, agent_id, amount, category, timestamp, decision, reason,
-                   is_injected_misbehavior, misbehavior_type, source)
-                VALUES
-                  (:id, :agent_id, :amount, :category, :timestamp, :decision, :reason,
-                   :is_injected, :mtype, :source)
-                ON CONFLICT (id) DO NOTHING
-                """,
-                {
-                    "id":          record["id"],
-                    "agent_id":    record["agent_id"],
-                    "amount":      record["amount"],
-                    "category":    record["category"],
-                    "timestamp":   record["timestamp"],
-                    "decision":    record["decision"],
-                    "reason":      record["reason"],
-                    "is_injected": record["is_injected_misbehavior"],
-                    "mtype":       record["misbehavior_type"],
-                    "source":      record["source"],
-                },
-            )
-            replayed += 1
-        except Exception as e:
-            logger.error(f"[replay_pending] Failed to replay line: {e} — keeping it.")
-            failed_lines.append(line)
-
-    # Rewrite the file with only the lines that failed to replay
-    if failed_lines:
-        FALLBACK_LOG_PATH.write_text("\n".join(failed_lines) + "\n", encoding="utf-8")
-    else:
-        FALLBACK_LOG_PATH.unlink(missing_ok=True)
-        _db_healthy = True
-
-    logger.info(f"[replay_pending] Replayed {replayed} pending transactions.")
-    return replayed
+    return 0
+    # global _db_healthy
+    #
+    # if not FALLBACK_LOG_PATH.exists():
+    #     return 0
+    # ... (full replay implementation deferred)

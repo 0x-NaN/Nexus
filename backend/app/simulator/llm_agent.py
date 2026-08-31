@@ -61,11 +61,12 @@ def _build_ollama_payload(scenario: str) -> dict:
     }
 
 
-def _build_hf_payload(scenario: str) -> dict:
-    return {
-        "inputs": f"{SYSTEM_PROMPT}\n\nUser: {scenario}\n\nAssistant:",
-        "parameters": {"temperature": 0.7, "max_new_tokens": 1024, "return_full_text": False},
-    }
+# def _build_hf_payload(scenario: str) -> dict:
+#     """[DEFERRED — hosted-API tier] Kept for reference. See CONTEXT.md."""
+#     return {
+#         "inputs": f"{SYSTEM_PROMPT}\n\nUser: {scenario}\n\nAssistant:",
+#         "parameters": {"temperature": 0.7, "max_new_tokens": 1024, "return_full_text": False},
+#     }
 
 
 def _strip_fences(raw: str) -> str:
@@ -156,39 +157,17 @@ async def _insert_denied_malformed(raw_response: str, source: str):
     logger.warning(f"[LLM] Response FAILED -- malformed_agent_payload (inserted denied entry, source={source})")
 
 
-async def _call_hf_api(scenario: str) -> Optional[str]:
-    """Call HuggingFace Inference API. Returns raw response text or None on failure."""
-    import os
-    hf_token = os.getenv("HF_API_TOKEN")
-    if not hf_token:
-        return None
-
-    try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            resp = await client.post(
-                HF_API_URL,
-                json=_build_hf_payload(scenario),
-                headers={"Authorization": f"Bearer {hf_token}"},
-            )
-            if resp.status_code == 429:
-                logger.warning("[LLM] Hosted API rate limited (429)")
-                return None
-            resp.raise_for_status()
-            body = resp.json()
-            if isinstance(body, list) and len(body) > 0:
-                return body[0].get("generated_text", "")
-            elif isinstance(body, dict):
-                return body.get("generated_text", "") or body.get("error", "")
-            return ""
-    except httpx.TimeoutException:
-        logger.warning("[LLM] Hosted API timeout")
-        return None
-    except httpx.HTTPStatusError as e:
-        logger.warning(f"[LLM] Hosted API HTTP error: {e.response.status_code}")
-        return None
-    except Exception as e:
-        logger.warning(f"[LLM] Hosted API error: {e}")
-        return None
+# ── Hosted API tier (HuggingFace) — DEFERRED (graceful degradation) ──────────
+# See CONTEXT.md. The hosted-API → Ollama → scripted degradation chain is future
+# work. These helpers are kept commented out for reference.
+#
+# async def _call_hf_api(scenario: str) -> Optional[str]:
+#     """[DEFERRED] Call HuggingFace Inference API. Returns raw response or None."""
+#     import os
+#     hf_token = os.getenv("HF_API_TOKEN")
+#     if not hf_token:
+#         return None
+#     ...
 
 
 async def _call_ollama(scenario: str) -> Optional[str]:
@@ -248,28 +227,27 @@ async def _try_parse_and_build_txs(raw_response: str, source: str) -> Optional[l
 
 async def fetch_llm_transactions() -> list[TransactionIn]:
     """
-    Three-tier LLM degradation:
-    1. Hosted API (HuggingFace) -> source='llm-hosted'
-    2. Local Ollama -> source='llm-local'
-    3. Scripted generator -> source='sim'
+    Travel Agent LLM call — single tier.
+
+    Graceful degradation (Hosted API → Ollama → scripted) is DEFERRED to future
+    work (see CONTEXT.md). For now this makes a direct Ollama call and falls back
+    to the scripted generator only if Ollama is unreachable.
     """
     scenario = _pick_scenario()
     logger.info(f"[LLM] Travel Agent scenario: {scenario[:70]}...")
 
-    # --- Tier 1: Hosted API ---
-    hf_response = await _call_hf_api(scenario)
-    if hf_response is not None:
-        txs = await _try_parse_and_build_txs(hf_response, "llm-hosted")
-        if txs is not None:
-            logger.info(f"[LLM] Hosted API success ({len(txs)} txs)")
-            return txs
-        # Malformed response from hosted API - deny and log, do NOT fall back
-        await _insert_denied_malformed(hf_response, "llm-hosted")
-        return []
+    # ── Hosted API tier (HuggingFace) — DEFERRED (graceful degradation) ──────
+    # hf_response = await _call_hf_api(scenario)
+    # if hf_response is not None:
+    #     txs = await _try_parse_and_build_txs(hf_response, "llm-hosted")
+    #     if txs is not None:
+    #         logger.info(f"[LLM] Hosted API success ({len(txs)} txs)")
+    #         return txs
+    #     await _insert_denied_malformed(hf_response, "llm-hosted")
+    #     return []
+    # logger.info("[LLM] Hosted API unavailable — falling back to Ollama")
 
-    logger.info("[LLM] Hosted API unavailable — falling back to Ollama")
-
-    # --- Tier 2: Local Ollama ---
+    # ── Ollama (primary) ──────────────────────────────────────────────────────
     ollama_response = await _call_ollama(scenario)
     if ollama_response is not None:
         txs = await _try_parse_and_build_txs(ollama_response, "llm-local")
@@ -280,10 +258,10 @@ async def fetch_llm_transactions() -> list[TransactionIn]:
         await _insert_denied_malformed(ollama_response, "llm-local")
         return []
 
-    logger.warning("[LLM] Ollama unavailable — falling back to scripted generator")
+    logger.warning("[LLM] Ollama unavailable — using scripted generator")
 
-    # --- Tier 3: Scripted generator (last resort) ---
-    logger.warning("[LLM] All LLM tiers unavailable — Travel Agent using scripted generator")
+    # ── Scripted generator (last resort) ─────────────────────────────────────
+    logger.warning("[LLM] Ollama unavailable — Travel Agent using scripted generator")
     travel_agent = next(
         (a for a in get_agent_definitions() if a["id"] == TRAVEL_AGENT_ID), None
     )

@@ -6,184 +6,186 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.models import SimulatorStatusOut, SimulatorStartIn, InjectIn, LastInjection
 from app.simulator import engine
-from app.simulator.llm_agent import fetch_llm_transactions, _call_hf_api, _call_ollama, _try_parse_and_build_txs
+# Graceful degradation (test-llm tier tester) deferred to future work — see CONTEXT.md.
+# from app.simulator.llm_agent import fetch_llm_transactions, _call_hf_api, _call_ollama, _try_parse_and_build_txs
 from datetime import datetime
 
 router = APIRouter(prefix="/simulator", tags=["simulator"])
 
 
-class LLMTestRequest(BaseModel):
-    tier: str  # "hosted", "ollama", "scripted", "auto"
-    scenario: Optional[str] = None
+# class LLMTestRequest(BaseModel):
+#     tier: str  # "hosted", "ollama", "scripted", "auto"
+#     scenario: Optional[str] = None
 
 
-class LLMTestResponse(BaseModel):
-    tier_attempted: str
-    tier_succeeded: Optional[str]
-    transactions: list
-    error: Optional[str] = None
-    raw_response: Optional[str] = None
+# class LLMTestResponse(BaseModel):
+#     tier_attempted: str
+#     tier_succeeded: Optional[str]
+#     transactions: list
+#     error: Optional[str] = None
+#     raw_response: Optional[str] = None
 
 
-@router.post("/test-llm", response_model=LLMTestResponse)
-async def test_llm_tier(body: LLMTestRequest):
-    """Test a specific LLM degradation tier."""
-    scenario = body.scenario or "Your client needs a round-trip flight from New York to Chicago departing next Monday and returning Wednesday."
-    
-    if body.tier == "hosted":
-        raw = await _call_hf_api(scenario)
-        if raw is None:
-            return LLMTestResponse(
-                tier_attempted="hosted",
-                tier_succeeded=None,
-                transactions=[],
-                error="Hosted API unavailable (no token or network error)",
-                raw_response=None
-            )
-        txs = await _try_parse_and_build_txs(raw, "llm-hosted")
-        if txs is None:
-            return LLMTestResponse(
-                tier_attempted="hosted",
-                tier_succeeded=None,
-                transactions=[],
-                error="Malformed response from hosted API",
-                raw_response=raw[:500]
-            )
-        return LLMTestResponse(
-            tier_attempted="hosted",
-            tier_succeeded="llm-hosted",
-            transactions=[tx.model_dump(mode="json") for tx in txs],
-            raw_response=raw[:500]
-        )
-    
-    elif body.tier == "scripted":
-        from app.config import get_agent_definitions
-        from app.models import TransactionIn
-        from decimal import Decimal
-        import random as rnd
-        
-        TRAVEL_AGENT_ID = "agent_003"
-        travel_agent = next((a for a in get_agent_definitions() if a["id"] == TRAVEL_AGENT_ID), None)
-        if not travel_agent:
-            return LLMTestResponse(
-                tier_attempted="scripted",
-                tier_succeeded=None,
-                transactions=[],
-                error="Travel agent not found in config",
-                raw_response=None
-            )
-        
-        amount = Decimal(str(round(rnd.uniform(
-            travel_agent["normal_range"]["min"],
-            travel_agent["normal_range"]["max"]
-        ), 2)))
-        
-        tx = TransactionIn(
-            agent_id=TRAVEL_AGENT_ID,
-            amount=amount,
-            category=travel_agent["category"],
-            source="sim",
-        )
-        
-        return LLMTestResponse(
-            tier_attempted="scripted",
-            tier_succeeded="sim",
-            transactions=[tx.model_dump(mode="json")],
-            error=None,
-            raw_response=None
-        )
-    
-    elif body.tier == "ollama":
-        raw = await _call_ollama(scenario)
-        if raw is None:
-            return LLMTestResponse(
-                tier_attempted="ollama",
-                tier_succeeded=None,
-                transactions=[],
-                error="Ollama unavailable (connection refused, timeout, or HTTP error)",
-                raw_response=None
-            )
-        txs = await _try_parse_and_build_txs(raw, "llm-local")
-        if txs is None:
-            return LLMTestResponse(
-                tier_attempted="ollama",
-                tier_succeeded=None,
-                transactions=[],
-                error="Malformed response from Ollama",
-                raw_response=raw[:500]
-            )
-        return LLMTestResponse(
-            tier_attempted="ollama",
-            tier_succeeded="llm-local",
-            transactions=[tx.model_dump(mode="json") for tx in txs],
-            raw_response=raw[:500]
-        )
-    
-    elif body.tier == "auto":
-        # Full three-tier test
-        # Try hosted
-        raw = await _call_hf_api(scenario)
-        if raw is not None:
-            txs = await _try_parse_and_build_txs(raw, "llm-hosted")
-            if txs is not None:
-                return LLMTestResponse(
-                    tier_attempted="hosted",
-                    tier_succeeded="llm-hosted",
-                    transactions=[tx.model_dump(mode="json") for tx in txs],
-                    raw_response=raw[:500]
-                )
-        
-        # Fallback to Ollama
-        raw = await _call_ollama(scenario)
-        if raw is not None:
-            txs = await _try_parse_and_build_txs(raw, "llm-local")
-            if txs is not None:
-                return LLMTestResponse(
-                    tier_attempted="ollama",
-                    tier_succeeded="llm-local",
-                    transactions=[tx.model_dump(mode="json") for tx in txs],
-                    raw_response=raw[:500]
-                )
-        
-        # Last resort - scripted
-        from app.config import get_agent_definitions
-        from app.models import TransactionIn
-        from decimal import Decimal
-        import random as rnd
-        
-        TRAVEL_AGENT_ID = "agent_003"
-        travel_agent = next((a for a in get_agent_definitions() if a["id"] == TRAVEL_AGENT_ID), None)
-        if not travel_agent:
-            return LLMTestResponse(
-                tier_attempted="scripted",
-                tier_succeeded=None,
-                transactions=[],
-                error="Travel agent not found in config",
-                raw_response=None
-            )
-        
-        amount = Decimal(str(round(rnd.uniform(
-            travel_agent["normal_range"]["min"],
-            travel_agent["normal_range"]["max"]
-        ), 2)))
-        
-        tx = TransactionIn(
-            agent_id=TRAVEL_AGENT_ID,
-            amount=amount,
-            category=travel_agent["category"],
-            source="sim",
-        )
-        
-        return LLMTestResponse(
-            tier_attempted="scripted",
-            tier_succeeded="sim",
-            transactions=[tx.model_dump(mode="json")],
-            error="All LLM tiers failed — used scripted fallback",
-            raw_response=None
-        )
-    
-    else:
-        raise HTTPException(status_code=400, detail="Invalid tier. Use 'hosted', 'ollama', 'scripted', or 'auto'")
+# @router.post("/test-llm", response_model=LLMTestResponse)
+# async def test_llm_tier(body: LLMTestRequest):
+#     """[DEFERRED — graceful degradation] Test a specific LLM degradation tier."""
+#     ...
+# [DEFERRED]     scenario = body.scenario or "Your client needs a round-trip flight from New York to Chicago departing next Monday and returning Wednesday."
+# [DEFERRED]     
+# [DEFERRED]     if body.tier == "hosted":
+# [DEFERRED]         raw = await _call_hf_api(scenario)
+# [DEFERRED]         if raw is None:
+# [DEFERRED]             return LLMTestResponse(
+# [DEFERRED]                 tier_attempted="hosted",
+# [DEFERRED]                 tier_succeeded=None,
+# [DEFERRED]                 transactions=[],
+# [DEFERRED]                 error="Hosted API unavailable (no token or network error)",
+# [DEFERRED]                 raw_response=None
+# [DEFERRED]             )
+# [DEFERRED]         txs = await _try_parse_and_build_txs(raw, "llm-hosted")
+# [DEFERRED]         if txs is None:
+# [DEFERRED]             return LLMTestResponse(
+# [DEFERRED]                 tier_attempted="hosted",
+# [DEFERRED]                 tier_succeeded=None,
+# [DEFERRED]                 transactions=[],
+# [DEFERRED]                 error="Malformed response from hosted API",
+# [DEFERRED]                 raw_response=raw[:500]
+# [DEFERRED]             )
+# [DEFERRED]         return LLMTestResponse(
+# [DEFERRED]             tier_attempted="hosted",
+# [DEFERRED]             tier_succeeded="llm-hosted",
+# [DEFERRED]             transactions=[tx.model_dump(mode="json") for tx in txs],
+# [DEFERRED]             raw_response=raw[:500]
+# [DEFERRED]         )
+# [DEFERRED]     
+# [DEFERRED]     elif body.tier == "scripted":
+# [DEFERRED]         from app.config import get_agent_definitions
+# [DEFERRED]         from app.models import TransactionIn
+# [DEFERRED]         from decimal import Decimal
+# [DEFERRED]         import random as rnd
+# [DEFERRED]         
+# [DEFERRED]         TRAVEL_AGENT_ID = "agent_003"
+# [DEFERRED]         travel_agent = next((a for a in get_agent_definitions() if a["id"] == TRAVEL_AGENT_ID), None)
+# [DEFERRED]         if not travel_agent:
+# [DEFERRED]             return LLMTestResponse(
+# [DEFERRED]                 tier_attempted="scripted",
+# [DEFERRED]                 tier_succeeded=None,
+# [DEFERRED]                 transactions=[],
+# [DEFERRED]                 error="Travel agent not found in config",
+# [DEFERRED]                 raw_response=None
+# [DEFERRED]             )
+# [DEFERRED]         
+# [DEFERRED]         amount = Decimal(str(round(rnd.uniform(
+# [DEFERRED]             travel_agent["normal_range"]["min"],
+# [DEFERRED]             travel_agent["normal_range"]["max"]
+# [DEFERRED]         ), 2)))
+# [DEFERRED]         
+# [DEFERRED]         tx = TransactionIn(
+# [DEFERRED]             agent_id=TRAVEL_AGENT_ID,
+# [DEFERRED]             amount=amount,
+# [DEFERRED]             category=travel_agent["category"],
+# [DEFERRED]             source="sim",
+# [DEFERRED]         )
+# [DEFERRED]         
+# [DEFERRED]         return LLMTestResponse(
+# [DEFERRED]             tier_attempted="scripted",
+# [DEFERRED]             tier_succeeded="sim",
+# [DEFERRED]             transactions=[tx.model_dump(mode="json")],
+# [DEFERRED]             error=None,
+# [DEFERRED]             raw_response=None
+# [DEFERRED]         )
+# [DEFERRED]     
+# [DEFERRED]     elif body.tier == "ollama":
+# [DEFERRED]         raw = await _call_ollama(scenario)
+# [DEFERRED]         if raw is None:
+# [DEFERRED]             return LLMTestResponse(
+# [DEFERRED]                 tier_attempted="ollama",
+# [DEFERRED]                 tier_succeeded=None,
+# [DEFERRED]                 transactions=[],
+# [DEFERRED]                 error="Ollama unavailable (connection refused, timeout, or HTTP error)",
+# [DEFERRED]                 raw_response=None
+# [DEFERRED]             )
+# [DEFERRED]         txs = await _try_parse_and_build_txs(raw, "llm-local")
+# [DEFERRED]         if txs is None:
+# [DEFERRED]             return LLMTestResponse(
+# [DEFERRED]                 tier_attempted="ollama",
+# [DEFERRED]                 tier_succeeded=None,
+# [DEFERRED]                 transactions=[],
+# [DEFERRED]                 error="Malformed response from Ollama",
+# [DEFERRED]                 raw_response=raw[:500]
+# [DEFERRED]             )
+# [DEFERRED]         return LLMTestResponse(
+# [DEFERRED]             tier_attempted="ollama",
+# [DEFERRED]             tier_succeeded="llm-local",
+# [DEFERRED]             transactions=[tx.model_dump(mode="json") for tx in txs],
+# [DEFERRED]             raw_response=raw[:500]
+# [DEFERRED]         )
+# [DEFERRED]     
+# [DEFERRED]     elif body.tier == "auto":
+# [DEFERRED]         # Full three-tier test
+# [DEFERRED]         # Try hosted
+# [DEFERRED]         raw = await _call_hf_api(scenario)
+# [DEFERRED]         if raw is not None:
+# [DEFERRED]             txs = await _try_parse_and_build_txs(raw, "llm-hosted")
+# [DEFERRED]             if txs is not None:
+# [DEFERRED]                 return LLMTestResponse(
+# [DEFERRED]                     tier_attempted="hosted",
+# [DEFERRED]                     tier_succeeded="llm-hosted",
+# [DEFERRED]                     transactions=[tx.model_dump(mode="json") for tx in txs],
+# [DEFERRED]                     raw_response=raw[:500]
+# [DEFERRED]                 )
+# [DEFERRED]         
+# [DEFERRED]         # Fallback to Ollama
+# [DEFERRED]         raw = await _call_ollama(scenario)
+# [DEFERRED]         if raw is not None:
+# [DEFERRED]             txs = await _try_parse_and_build_txs(raw, "llm-local")
+# [DEFERRED]             if txs is not None:
+# [DEFERRED]                 return LLMTestResponse(
+# [DEFERRED]                     tier_attempted="ollama",
+# [DEFERRED]                     tier_succeeded="llm-local",
+# [DEFERRED]                     transactions=[tx.model_dump(mode="json") for tx in txs],
+# [DEFERRED]                     raw_response=raw[:500]
+# [DEFERRED]                 )
+# [DEFERRED]         
+# [DEFERRED]         # Last resort - scripted
+# [DEFERRED]         from app.config import get_agent_definitions
+# [DEFERRED]         from app.models import TransactionIn
+# [DEFERRED]         from decimal import Decimal
+# [DEFERRED]         import random as rnd
+# [DEFERRED]         
+# [DEFERRED]         TRAVEL_AGENT_ID = "agent_003"
+# [DEFERRED]         travel_agent = next((a for a in get_agent_definitions() if a["id"] == TRAVEL_AGENT_ID), None)
+# [DEFERRED]         if not travel_agent:
+# [DEFERRED]             return LLMTestResponse(
+# [DEFERRED]                 tier_attempted="scripted",
+# [DEFERRED]                 tier_succeeded=None,
+# [DEFERRED]                 transactions=[],
+# [DEFERRED]                 error="Travel agent not found in config",
+# [DEFERRED]                 raw_response=None
+# [DEFERRED]             )
+# [DEFERRED]         
+# [DEFERRED]         amount = Decimal(str(round(rnd.uniform(
+# [DEFERRED]             travel_agent["normal_range"]["min"],
+# [DEFERRED]             travel_agent["normal_range"]["max"]
+# [DEFERRED]         ), 2)))
+# [DEFERRED]         
+# [DEFERRED]         tx = TransactionIn(
+# [DEFERRED]             agent_id=TRAVEL_AGENT_ID,
+# [DEFERRED]             amount=amount,
+# [DEFERRED]             category=travel_agent["category"],
+# [DEFERRED]             source="sim",
+# [DEFERRED]         )
+# [DEFERRED]         
+# [DEFERRED]         return LLMTestResponse(
+# [DEFERRED]             tier_attempted="scripted",
+# [DEFERRED]             tier_succeeded="sim",
+# [DEFERRED]             transactions=[tx.model_dump(mode="json")],
+# [DEFERRED]             error="All LLM tiers failed — used scripted fallback",
+# [DEFERRED]             raw_response=None
+# [DEFERRED]         )
+# [DEFERRED]     
+# [DEFERRED]     else:
+# [DEFERRED]         raise HTTPException(status_code=400, detail="Invalid tier. Use 'hosted', 'ollama', 'scripted', or 'auto'")
 
 
 @router.get("/status", response_model=SimulatorStatusOut)
