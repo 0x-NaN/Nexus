@@ -21,16 +21,18 @@
 
 ## Overview
 
-Nexus sits between any AI agent and the transaction it wants to execute, evaluating every request against policy before allowing it through. An operator can instantly halt the entire fleet via a kill switch. Every decision — allowed, denied, or flagged — is permanently logged with a reason and exportable as CSV.
+Nexus sits between any AI agent and the transaction it wants to execute, evaluating every request against policy before allowing it through. An operator can instantly halt the entire fleet via a kill switch. Every decision — allowed, denied, or flagged — is permanently logged with a reason and exportable for review.
 
-**Originally built for [RazorPay Hackathon 2026] (Theme: Governance Layer for Financial Agents). Now refactored toward an industry-level open-source MVP.**
+Nexus started as a solo build for a governance-themed fintech hackathon and has since been refactored into a submission for **Razorpay's 2026 Build Fest — Open Track**. It doesn't fit the platform's commerce or fraud-detection tracks by design: it isn't building agentic checkout or scoring fraud probability, it's the control plane that would sit underneath either — policy enforcement, kill-switch revocation, and an immutable audit trail for any fleet of money-moving agents, regardless of what they're transacting or with whom.
+
+**Why this matters now:** agent-to-agent commerce is projected to be enormous — analysts estimate AI agents could mediate trillions of dollars of global commerce within a few years — and most payment infrastructure today still assumes a human at checkout. Agent governance is lagging behind agent capability. Nexus is a small, honest attempt at closing that gap for teams who need real enforcement now, not a six-month platform evaluation.
 
 ---
 
 ## Architecture
 
 ```
-Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
+Agent Fleet (4 scripted + 1 LLM-optional Travel Agent)
         │
         ▼
 Policy Engine (kill_switch → scope_check → spend_cap → burst_detection)
@@ -43,38 +45,40 @@ Event Log (PostgreSQL, append-only)
 WebSocket Broadcast (server-push only)
         │
         ▼
-React Dashboard (agent cards, live audit feed, kill switch, CSV export, debug panel)
+React Dashboard (agent cards, live audit feed, kill switch, export, dev console)
 ```
 
-**Key design principle**: Policy rules are config-defined at deploy time (YAML, loaded once at startup) and are NOT runtime-editable via any API.
+**Key design principle:** policy rules are config-defined at deploy time (YAML, loaded once at startup) and are **not** runtime-editable via any API. This is a deliberate governance choice, not an oversight — a policy layer that can be silently reconfigured at runtime isn't a policy layer worth trusting.
+
+**Ecosystem-agnostic by design:** Nexus doesn't assume any particular agent framework, LLM provider, or payment protocol. It exposes a plain transaction-evaluation endpoint — any fleet that can call it is governable, whether the agents behind it are built on LangChain, CrewAI, a custom script, or something else entirely. Governance is decoupled from whatever stack is generating the transactions.
 
 ---
 
 ## Features
 
 | Feature | Description |
-|---------|-------------|
+|---|---|
 | **Two-tier spend caps** | Flag at 90%, deny at 100% per agent |
 | **Scope enforcement** | Agents locked to their category (grocery, subscription, travel, dining, office) |
-| **Burst detection** | Rate limiting per agent (configurable per-agent) |
-| **Global kill switch** | Instant fleet-wide revocation, logged as audit event |
-| **Immutable audit trail** | Every transaction logged with decision + reason, exportable as CSV |
-| **LLM degradation tiers** | Hosted API → Local Ollama → Scripted fallback |
-| **Real-time dashboard** | WebSocket-fed agent cards, live audit feed, kill switch |
+| **Burst detection** | Per-agent rate limiting, evaluated sequentially to avoid race conditions under concurrent load |
+| **Global kill switch** | Instant fleet-wide revocation, logged as an audit event |
+| **Immutable audit trail** | Every transaction logged with a decision and a reason, exportable for review |
+| **Framework-agnostic agent fleet** | Any agent stack that can call the evaluation endpoint is governable |
+| **Real-time dashboard** | WebSocket-fed agent cards, live audit feed, kill switch, developer console |
 
 ---
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|------------|
-| **Frontend** | React 19 + Vite 6 + framer-motion |
+|---|---|
+| **Frontend** | React 19 + Vite 6, motion.dev (functional motion only), skeuomorphic + spatial UI design system |
 | **Backend** | FastAPI (Python 3.12, async) |
 | **Database** | PostgreSQL 17 |
 | **Real-time** | WebSockets (server-push) |
-| **LLM** | Vercel AI SDK + Ollama (qwen14b-opencode:latest) |
-| **Deployment** | Docker Compose |
-| **Design** | kokonut UI / bklit UI (shadcn-based registries) |
+| **LLM (optional)** | Local Ollama tier for the Travel Agent when available; falls back to a deterministic scripted generator otherwise |
+| **CI/CD** | GitHub Actions (lint, test, Docker build) |
+| **Deployment** | Docker Compose (local) · Railway (backend + DB) · Netlify (frontend) |
 
 ---
 
@@ -84,25 +88,22 @@ React Dashboard (agent cards, live audit feed, kill switch, CSV export, debug pa
 - Docker Desktop 24+
 - Node.js 20+ (for local frontend dev)
 - Python 3.12+ (for local backend dev)
-- Ollama (optional, for local LLM tier)
+- Ollama (optional — enables the local LLM tier for the Travel Agent)
 
 ### Using Docker Compose (Recommended)
 
 ```bash
-# Clone and configure
 git clone https://github.com/0x-NaN/Nexus.git
 cd Nexus
 
-# Set required env vars
 cp .env.example .env
 # Edit .env: set POSTGRES_PASSWORD (required)
 
-# Start all services
 docker compose up --build
 ```
 
 | Service | URL |
-|---------|-----|
+|---|---|
 | Frontend Dashboard | http://localhost:5173 |
 | Backend API | http://localhost:8000 |
 | API Docs (Swagger) | http://localhost:8000/docs |
@@ -119,7 +120,7 @@ python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
-PGPASSWORD=postgres uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 
 # Frontend
 cd frontend
@@ -132,53 +133,29 @@ npm run dev
 ## Environment Variables
 
 | Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
+|---|---|---|---|
 | `POSTGRES_PASSWORD` | Yes | — | PostgreSQL password |
-| `HF_API_TOKEN` | No | — | HuggingFace Inference API token (hosted LLM tier) |
-| `OLLAMA_URL` | No | `http://host.docker.internal:11434/api/generate` | Ollama endpoint |
+| `OLLAMA_URL` | No | `http://host.docker.internal:11434/api/generate` | Local Ollama endpoint, for the optional LLM tier |
 | `DATABASE_URL` | Auto | `postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/killswitch` | DB connection |
-
----
-
-## LLM Degradation Tiers
-
-The Travel Agent uses a three-tier fallback system:
-
-1. **Hosted API** (Primary) — HuggingFace Inference API, requires `HF_API_TOKEN`
-2. **Local Ollama** (Fallback) — qwen14b-opencode:latest on localhost:11434
-3. **Scripted Generator** (Last Resort) — Deterministic generator, system stays functional
-
-Test tiers via API:
-```bash
-# Auto (all tiers)
-curl -X POST http://localhost:8000/simulator/test-llm \
-  -H "Content-Type: application/json" \
-  -d '{"tier": "auto"}'
-
-# Specific tier
-curl -X POST http://localhost:8000/simulator/test-llm \
-  -H "Content-Type: application/json" \
-  -d '{"tier": "ollama"}'
-```
 
 ---
 
 ## API Reference
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+|---|---|---|
 | `GET` | `/health` | Health check |
 | `GET` | `/agents` | List all agents with spend totals |
-| `POST` | `/transaction/evaluate` | Submit transaction for policy evaluation |
-| `GET` | `/transactions` | Query audit log (filters: agent_id, decision, etc.) |
-| `GET` | `/transactions/export` | Export audit log as CSV |
+| `POST` | `/agents` | Register a new agent |
+| `DELETE` | `/agents/{agent_id}` | Remove an agent |
+| `POST` | `/transaction/evaluate` | Submit a transaction for policy evaluation |
+| `GET` | `/transactions` | Query the audit log (filters: agent_id, decision, etc.) |
+| `GET` | `/transactions/export` | Export the audit log |
 | `GET` | `/kill-switch` | Current kill switch state |
 | `POST` | `/kill-switch` | Toggle kill switch |
 | `GET` | `/simulator/status` | Simulator status |
-| `POST` | `/simulator/start` | Start noise simulator |
-| `POST` | `/simulator/stop` | Stop simulator |
-| `POST` | `/simulator/inject` | Inject misbehavior (overspend, off_scope, burst) |
-| `POST` | `/simulator/test-llm` | Test LLM degradation tiers |
+| `POST` | `/simulator/start` \| `/simulator/stop` | Start / stop the ambient noise simulator |
+| `POST` | `/simulator/inject` | Inject misbehavior (overspend, off_scope, burst) for testing |
 
 ---
 
@@ -194,8 +171,8 @@ Nexus/
 │   │   ├── models.py            # Pydantic schemas
 │   │   ├── ws_manager.py        # WebSocket manager
 │   │   ├── routers/             # API routes
-│   │   ├── services/            # Policy engine, kill switch
-│   │   └── simulator/           # Noise + LLM agent
+│   │   ├── services/            # Policy engine, kill switch, auth
+│   │   └── simulator/           # Noise + Travel Agent
 │   ├── config/
 │   │   ├── agents.yaml          # Agent definitions
 │   │   └── policy_rules.yaml    # Policy config
@@ -207,11 +184,10 @@ Nexus/
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx              # Main dashboard
-│   │   ├── main.jsx
+│   │   ├── App.jsx
+│   │   ├── components/          # DashboardLayout, AgentCard, KillSwitchButton, etc.
 │   │   └── index.css            # Design system
 │   ├── Dockerfile
-│   ├── nginx.conf
 │   └── package.json
 ├── docker-compose.yml
 ├── .env.example
@@ -220,73 +196,85 @@ Nexus/
 
 ---
 
-## Development
+## Business Case & Market Positioning
 
-### Running Tests
-```bash
-# Backend
-cd backend && python -m pytest
+Enterprise-grade agent governance platforms already exist — Arthur AI, Credo AI, and Fiddler AI cover discovery, runtime guardrails, and compliance evidence across large, regulated organizations, and payment-focused platforms like Nevermined and Skyfire handle delegated spending and settlement across multiple agent protocols. These are serious, well-funded platforms, and Nexus isn't trying to compete with them at that scale.
 
-# Frontend
-cd frontend && npm run lint
-```
+The gap Nexus fills is different: **self-hosted, config-simple governance for small teams and independent builders** who need a kill switch, spend caps, and a real audit trail today — without a procurement cycle, a compliance certification process, or a hosted rules dashboard they don't control. Policy rules are YAML you own and version-control, not settings inside someone else's platform. Enforcement happens in-line at the point of transaction, not as after-the-fact monitoring.
 
-### Database Migrations
-Migrations run automatically on container startup via PostgreSQL's `docker-entrypoint-initdb.d/`.
+Nexus isn't trying to be an enterprise governance suite at scale — it's the governance layer for the other 99% of teams shipping autonomous payment agents who need enforcement now.
 
-### Adding a Migration
-```bash
-# Create new migration file
-touch backend/db/migrations/002_migration_name.sql
-# Add SQL, then rebuild
-docker compose up --build
-```
+---
+
+## The Build, Honestly
+
+This project didn't start clean. Its earliest version was submitted to a different hackathon and wasn't shortlisted past the first round, despite scoring well on a technical read — the retrospective takeaway was about sequencing and packaging, not the underlying engineering: lead with proven, working functionality and hard numbers before problem framing or caveats. That lesson shaped how this version is presented.
+
+A few things broke along the way and got fixed rather than worked around:
+
+- **Burst detection was unreliable early on.** The simulator fired transactions concurrently, which meant some evaluated against a stale rate-check window before earlier transactions in the same burst had committed. The fix was straightforward once diagnosed — the injector now awaits each transaction sequentially instead of firing them all at once.
+- **Observability was originally planned around Prometheus and Grafana.** Given the constraints of a free-tier hosted deployment, that was scaled back in favor of a lightweight custom metrics endpoint that doesn't require running a separate monitoring stack.
+
+**Authentication (JWT/OIDC) is implemented on the backend — registration, login, token refresh, protected routes — but temporarily hidden from the UI** while a cross-origin request issue in the hosted environment gets resolved properly. We'd rather ship it right than ship it broken. Identity and multi-tenant access control for a system that governs real money movement is foundational work, and it's exactly the kind of thing we'd welcome the chance to build out properly in collaboration with the Razorpay team.
 
 ---
 
 ## Future Work & Roadmap
 
 | Feature | Status | Description |
-|---------|--------|-------------|
-| **Auth (JWT/OIDC)** | Planned | Account creation, login, and multi-tenant support. Currently deferred (bypassed in UI) to focus on core governance mechanics. |
-| **Adaptive Anomaly Detection** | Planned | Flag statistically unusual transactions per agent even if within hard limits. |
-| **Dynamic Governance Compliance** | Planned | Adjust agent policy via PDF/text uploads referencing DPDP or EU Regulations. |
+|---|---|---|
+| **Auth (JWT/OIDC) — UI enablement** | Implemented, hidden pending a fix | Backend flow complete; re-enabling in the UI once the hosted-environment CORS issue is resolved |
+| **Adaptive anomaly detection** | Planned | Flag statistically unusual transactions per agent even when within hard limits, using rolling stats rather than a new ML stack |
+| **Agent trust score** | Planned | Decaying reputation score per agent based on historical violation rate — informational only, never auto-adjusting permissions |
+| **Dry-run / policy impact simulation** | Planned | Replay historical transactions against a proposed policy change before deploying it |
+| **Dynamic governance compliance** | Exploratory | Adjusting agent policy based on uploaded regulatory references (e.g. DPDP, EU AI Act) |
+
+**Deliberately not planned:** Redis, n8n, and Kubernetes/Kafka/microservices — none of these solve a problem Nexus actually has at its current scale, and adding them now would be premature complexity, not maturity.
 
 ---
 
 ## Deployment
 
 ### Railway (Backend & DB)
-1. **Create a Railway project** and connect it to this GitHub repository.
-2. In the Railway dashboard, go to **Variables** and add the required environment variable:
-   - `POSTGRES_PASSWORD` – a strong password for the PostgreSQL service.
-3. Railway will automatically detect the `docker-compose.yml` at the repo root. It will spin up the following services:
-   - `backend` (FastAPI) – exposed on a generated URL, e.g. `https://my-project.up.railway.app`.
-   - `postgres` – managed PostgreSQL instance.
-   - `frontend` – you can optionally deploy the frontend separately on Netlify (see below).
-4. After the first deployment, verify the API is reachable at `https://<railway-app>.up.railway.app/health`.
-5. **Optional**: If you want the backend to serve the static frontend, uncomment the `frontend` service in `docker-compose.yml` and push the change – Railway will rebuild.
+1. Create a Railway project and connect this GitHub repository.
+2. Add `POSTGRES_PASSWORD` as an environment variable.
+3. Railway detects `docker-compose.yml` and provisions the `backend` and `postgres` services.
+4. Verify the API at `https://<railway-app>.up.railway.app/health`.
+
+*Note: the hosted deployment runs without a local Ollama instance, so the Travel Agent operates in scripted mode in production. The LLM tier is a local-development enhancement, not a hosted dependency — governance behavior is identical either way.*
 
 ### Netlify (Frontend)
-1. Sign in to Netlify and click **New site from Git**.
-2. Connect the same GitHub repository and select the **frontend** folder as the base directory.
-3. In **Build settings** set:
-   - **Build command**: `cd frontend && npm install && npm run build`
-   - **Publish directory**: `frontend/dist`
-4. Add the following environment variables (replace the placeholder URL with your Railway backend URL):
+1. New site from Git, connect the same repository, base directory `frontend`.
+2. Build command: `cd frontend && npm install && npm run build`
+3. Publish directory: `frontend/dist`
+4. Environment variables:
    ```
    VITE_API_BASE=https://<railway-app>.up.railway.app
    VITE_WS_BASE=wss://<railway-app>.up.railway.app
    ```
-5. Deploy – Netlify will build the Vite app and serve it at a Netlify subdomain.
-
-### Quick local test before deployment
-```bash
-# Backend
-cd backend && docker compose up --build
-# Frontend (local dev)
-cd frontend && npm install && npm run dev
-```
-Visit `http://localhost:5173` (frontend) and `http://localhost:8000/health` (backend) to ensure everything works.
 
 ---
+
+## Development
+
+```bash
+# Backend tests
+cd backend && python -m pytest
+
+# Frontend lint
+cd frontend && npm run lint
+```
+
+Database migrations run automatically on container startup via PostgreSQL's `docker-entrypoint-initdb.d/`.
+
+---
+
+## License
+
+MIT License — see `LICENSE` file.
+
+---
+
+<p align="center">
+  Built for autonomous AI governance.
+</p>
