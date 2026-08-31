@@ -389,6 +389,25 @@ export default function DashboardLayout({
 }) {
   const [activeView, setActiveView] = useState('dashboard');
   const [isLightMode, setIsLightMode] = useState(false);
+  const [dbStatus, setDbStatus] = useState('connected'); // 'connected' | 'fallback_active'
+
+  // Poll /health every 5 seconds to keep DB status pill live
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}/health`);
+        if (res.ok) {
+          const data = await res.json();
+          setDbStatus(data.db || 'connected');
+        }
+      } catch {
+        setDbStatus('fallback_active');
+      }
+    };
+    checkHealth();
+    const interval = setInterval(checkHealth, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (isLightMode) {
@@ -456,6 +475,20 @@ export default function DashboardLayout({
             <p className="text-sm text-muted-foreground">Real-time policy enforcement and monitoring</p>
           </div>
           <div className="flex items-center gap-6">
+             {/* DB Status Pill — updates live every 5s */}
+             <div className={cn(
+               "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold uppercase tracking-wider transition-colors duration-500",
+               dbStatus === 'connected'
+                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
+                 : "bg-amber-500/10 border-amber-500/40 text-amber-500"
+             )}>
+               <span className={cn(
+                 "w-1.5 h-1.5 rounded-full animate-pulse",
+                 dbStatus === 'connected' ? "bg-emerald-500" : "bg-amber-500"
+               )} />
+               {dbStatus === 'connected' ? 'DB Connected' : 'Fallback Active'}
+             </div>
+             <div className="w-px h-8 bg-border/50" />
              <ThemeKnob isLightMode={isLightMode} onToggle={() => setIsLightMode(!isLightMode)} />
              <div className="w-px h-8 bg-border/50" />
              <KillSwitchSlider isKilled={isKilled} onClick={onToggleKillSwitch} />

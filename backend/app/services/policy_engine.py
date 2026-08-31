@@ -18,6 +18,7 @@ from app.database import database
 from app.models import Decision, TransactionIn, TransactionOut
 from app.config import get_policy_config
 from app.services.kill_switch import is_killed
+from app.services.transaction_logger import log_transaction
 
 
 def _generate_tx_id() -> str:
@@ -85,7 +86,7 @@ async def evaluate(tx: TransactionIn) -> TransactionOut:
                 decision = Decision.denied
                 reason   = policy["burst_detection"]["deny_reason"]
 
-    # ── Write to event log ────────────────────────────────────────────────────
+    # ── Write to event log (via durable facade) ───────────────────────────────
     tx_id = _generate_tx_id()
     misbehavior_type_str = (
         tx.misbehavior_type.value
@@ -93,27 +94,19 @@ async def evaluate(tx: TransactionIn) -> TransactionOut:
         else None
     )
 
-    await database.execute(
-        """
-        INSERT INTO transactions
-          (id, agent_id, amount, category, timestamp, decision, reason,
-           is_injected_misbehavior, misbehavior_type, source)
-        VALUES
-          (:id, :agent_id, :amount, :category, :timestamp, :decision, :reason,
-           :is_injected, :mtype, :source)
-        """,
-        {
-            "id":          tx_id,
-            "agent_id":    tx.agent_id,
-            "amount":      str(tx.amount),
-            "category":    tx.category,
-            "timestamp":   timestamp,
-            "decision":    decision.value,
-            "reason":      reason,
-            "is_injected": tx.is_injected_misbehavior,
-            "mtype":       misbehavior_type_str,
-            "source":      tx.source,
-        },
+    # log_transaction() handles Postgres-first with JSONL fallback.
+    # A logging failure NEVER changes the policy decision already made above.
+    await log_transaction(
+        tx_id=tx_id,
+        agent_id=tx.agent_id,
+        amount=str(tx.amount),
+        category=tx.category,
+        timestamp=timestamp,
+        decision=decision.value,
+        reason=reason,
+        is_injected=tx.is_injected_misbehavior,
+        misbehavior_type=misbehavior_type_str,
+        source=tx.source,
     )
 
     return TransactionOut(

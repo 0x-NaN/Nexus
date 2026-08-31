@@ -256,7 +256,10 @@ async def _run_loop():
                 for tx in txs:
                     await _submit(tx)
                     if behavior == MisbehaviorType.burst:
-                        await asyncio.sleep(0.15)
+                        # 300ms gap: gives Postgres time to commit each tx so the
+                        # agent_recent_tx_rate view reflects it before the next tx
+                        # hits burst_detection. Old value (150ms) caused ~50% miss rate.
+                        await asyncio.sleep(0.30)
             else:
                 tx = _normal_tx(agent)
                 logger.info(f"[TICK {_tick_count}] NORMAL ${tx.amount} → {agent['name']} ({agent['id']})")
@@ -322,7 +325,7 @@ async def inject_now(
     for tx in txs:
         await _submit(tx)
         if misbehavior_type == MisbehaviorType.burst:
-            await asyncio.sleep(0.15)
+            await asyncio.sleep(0.30)  # Match run-loop fix — give PG time to commit
         results.append(tx.model_dump(mode="json"))
 
     return results

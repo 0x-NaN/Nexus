@@ -11,11 +11,12 @@ Startup sequence:
 CORS is open for dev — restrict in production.
 """
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
+
 from asgi_correlation_id import CorrelationIdMiddleware, correlation_id
 from pythonjsonlogger import jsonlogger
 
@@ -23,6 +24,7 @@ from app.database import database
 from app.config import get_agent_definitions, get_policy_config
 from app.ws_manager import manager
 from app.routers import agents, transactions, kill_switch, simulator, auth
+from app.services.transaction_logger import is_db_healthy, replay_pending
 
 # Configure structured JSON logging
 logger = logging.getLogger()
@@ -96,6 +98,10 @@ async def lifespan(app: FastAPI):
     app_logger.info("DB connected")
     await _seed_agents_from_config()
     await _ensure_kill_switch_row()
+    # Replay any transactions logged to fallback file while DB was down
+    replayed = await replay_pending()
+    if replayed:
+        app_logger.info(f"Replayed {replayed} pending fallback transactions into Postgres.")
     # Validate config loads without error
     get_policy_config()
     app_logger.info("Policy rules loaded")
@@ -117,16 +123,15 @@ app = FastAPI(
 # Add Correlation ID middleware
 app.add_middleware(CorrelationIdMiddleware)
 
-# Add Prometheus metrics exposure
-Instrumentator().instrument(app).expose(app)
-
 # CORS — open for local dev; lock down for any hosted demo
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("CORS_ALLOWED_ORIGINS", "*").split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from app.routers import agents, transactions, kill_switch, simulator, auth, dev
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(agents.router)
@@ -134,6 +139,7 @@ app.include_router(transactions.router)
 app.include_router(kill_switch.router)
 app.include_router(simulator.router)
 app.include_router(auth.router)
+app.include_router(dev.router)
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
@@ -164,4 +170,5 @@ async def reset_database():
 # ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/health", tags=["meta"])
 async def health():
-    return {"status": "ok", "service": "kill-switch-api"}
+    db_status = "connected" if is_db_healthy() else "fallback_active"
+    return {"status": "ok", "service": "kill-switch-api", "db": db_status}

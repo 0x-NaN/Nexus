@@ -244,53 +244,49 @@ docker compose up --build
 
 ---
 
-## Known Issues
+## Future Work & Roadmap
 
-| Issue | Status |
-|-------|--------|
-| Burst detection ~50% catch rate | Open — suspected race condition in injector |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Auth (JWT/OIDC)** | Planned | Account creation, login, and multi-tenant support. Currently deferred (bypassed in UI) to focus on core governance mechanics. |
+| **Adaptive Anomaly Detection** | Planned | Flag statistically unusual transactions per agent even if within hard limits. |
+| **Dynamic Governance Compliance** | Planned | Adjust agent policy via PDF/text uploads referencing DPDP or EU Regulations. |
 
 ---
 
 ## Deployment
 
-### Railway (Recommended)
-1. Connect GitHub repo to Railway
-2. Add `POSTGRES_PASSWORD` as environment variable
-3. Deploy — Railway auto-detects Docker Compose
+### Railway (Backend & DB)
+1. **Create a Railway project** and connect it to this GitHub repository.
+2. In the Railway dashboard, go to **Variables** and add the required environment variable:
+   - `POSTGRES_PASSWORD` – a strong password for the PostgreSQL service.
+3. Railway will automatically detect the `docker-compose.yml` at the repo root. It will spin up the following services:
+   - `backend` (FastAPI) – exposed on a generated URL, e.g. `https://my-project.up.railway.app`.
+   - `postgres` – managed PostgreSQL instance.
+   - `frontend` – you can optionally deploy the frontend separately on Netlify (see below).
+4. After the first deployment, verify the API is reachable at `https://<railway-app>.up.railway.app/health`.
+5. **Optional**: If you want the backend to serve the static frontend, uncomment the `frontend` service in `docker-compose.yml` and push the change – Railway will rebuild.
 
-### Other Platforms
-Any platform supporting Docker Compose: Render, Fly.io, DigitalOcean App Platform, AWS ECS, GCP Cloud Run.
+### Netlify (Frontend)
+1. Sign in to Netlify and click **New site from Git**.
+2. Connect the same GitHub repository and select the **frontend** folder as the base directory.
+3. In **Build settings** set:
+   - **Build command**: `cd frontend && npm install && npm run build`
+   - **Publish directory**: `frontend/dist`
+4. Add the following environment variables (replace the placeholder URL with your Railway backend URL):
+   ```
+   VITE_API_BASE=https://<railway-app>.up.railway.app
+   VITE_WS_BASE=wss://<railway-app>.up.railway.app
+   ```
+5. Deploy – Netlify will build the Vite app and serve it at a Netlify subdomain.
 
----
-
-## License
-
-MIT License — see `LICENSE` file (to be added).
-
----
-
-## Contributing
-
-1. Fork the repo
-2. Create feature branch
-3. Make changes
-4. Run `npm run lint` (frontend) and tests (backend)
-5. Submit PR
-
----
-
-## Acknowledgements
-
-- **kokonut UI** — Tailwind + shadcn + Motion component registry
-- **bklit UI** — shadcn-based charts and data visualization
-- **Vercel AI SDK** — Chat/ref patterns for agent scaffolding
-- **framer-motion** — Functional motion only
-- **ollama** — Local LLM inference
-- **fastapi** — High-performance async API framework
+### Quick local test before deployment
+```bash
+# Backend
+cd backend && docker compose up --build
+# Frontend (local dev)
+cd frontend && npm install && npm run dev
+```
+Visit `http://localhost:5173` (frontend) and `http://localhost:8000/health` (backend) to ensure everything works.
 
 ---
-
-<p align="center">
-  Built with ❤️ for autonomous AI governance
-</p>

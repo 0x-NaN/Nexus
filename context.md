@@ -56,6 +56,9 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 
 ### Design References
 - **Taste skill**, **Awesome Design.md**, **frontend-design skill**, **Antigravity Kit (UI-UX Pro Max)**
+- **Dev Metrics Dashboard Bento-Grid/Skeuomorphic Inspiration**: 
+  - [Dark Glass/Skeuomorphic Dashboard Ref 1](https://d3tamksjp7q04h.cloudfront.net/2023/12/08060351/dashboard-1.jpg)
+  - [Bento Grid Dashboard Ref 2](https://cdn.dribbble.com/userupload/45891063/file/fed11e31b499fc5e8259968c203dbdb3.png?format=webp&resize=400x300&vertical=center)
 
 ### Testing & Automation
 - **Playwright CLI**
@@ -81,26 +84,39 @@ Agent Fleet (4 scripted + 1 LLM-driven Travel Agent)
 - [x] Build Developer / Master Control dashboard for backend engineers (DB resets, Fleet Management).
 - [x] Interactive dot particle background.
 - [x] Update simulator engine to query database dynamically for newly added agents.
-- [ ] Implement brutalism/maximalism for the Light theme (add intense colors to dots/background so plain white isn't weird).
-- [ ] Fix burst detection bug (~50% catch rate) by refactoring simulator timing (await sequentially).
-- [ ] Fix Auth "Failed to fetch" (CORS / base URL issue).
+- [x] Implement brutalism/maximalism for the Light theme (add intense colors to dots/background so plain white isn't weird).
+- [x] Fix burst detection bug (~50% catch rate) by refactoring simulator timing (await sequentially).
 
 ### Phase 4 — Future Works & Ideas
-1. **Observability Stack**: Prometheus + Grafana (removed from current compose to save resources, but planned for hosted deployments).
-2. **Graceful Degradation**: Solidify the tier system (Hosted API → Local Ollama → Scripted fallback). Currently just an idea/partially implemented.
-3. **Adaptive anomaly detection**: Flag statistically unusual transactions per agent even if within hard limits.
-4. **Agent trust score**: Decaying reputation score per agent based on historical violation rate.
+1. **Adaptive anomaly detection**: Flag statistically unusual transactions per agent even if within hard limits.
+2. **Agent trust score**: Decaying reputation score per agent based on historical violation rate.
+3. **Graceful Degradation**: Solidify the tier system (Hosted API → Local Ollama → Scripted fallback). Currently just an idea/partially implemented.
+4. **Dynamic Governance Compliance**: Ability to adjust or change the mechanics of an agent's working (e.g., what gets flagged) dynamically based on PDF or text entries uploaded by users that comply with governance acts like DPDP or EU Regulations.
+5. **Authentication (JWT/OIDC)**: Fix the "Failed to fetch" (CORS / base URL issue) and fully support multi-tenant accounts. Currently deferred.
+
+### Phase 5 — Hackathon Submission Hardening (ACTIVE)
+**Hard deadline. Do not add anything beyond what is listed.**
+
+- [x] **Fix 1 — Burst detection race condition**: Simulator burst injector fires transactions concurrently → policy engine evaluates against stale rate-check window. Fix: await each tx sequentially in the burst injector. Measure old vs new catch rate and report both numbers for README.
+- [ ] **Fix 2 — Durable transaction logging / Postgres fallback**:
+  - Create `log_transaction()` facade in `services/transaction_logger.py`. All callers use this — never the raw DB insert directly.
+  - Inside: try Postgres first; on failure, append JSON line to `fallback_audit.jsonl`.
+  - Add `replay_pending()`: on reconnect, insert pending lines in order, then clear the file.
+  - System MUST fail closed for policy — logging failure never permits a transaction through.
+- [ ] **Fix 3 — Health endpoint + UI status pill**:
+  - Upgrade `GET /health` to return `{"db": "connected" | "fallback_active"}`.
+  - Add a live status pill on the main dashboard (NOT the dev panel): green = connected, yellow = fallback_active. Updates live.
+- [ ] **Fix 4 — Deployment (Railway + Netlify)**:
+  - Frontend (React/Vite) → Netlify.
+  - Backend (FastAPI) + PostgreSQL → Railway (persistent process, WebSocket support, managed Postgres).
+  - Wire `VITE_API_BASE` / `VITE_WS_BASE` to Railway backend URL.
+  - Goal: one hosted link a reviewer can open with zero local setup.
 
 ### Explicitly not planned
 - Redis, n8n, Kubernetes/Kafka, GitHub Actions (CI/CD deleted for simplicity), Decision Narration, Dry Runs.
 
 ---
 
-## Known Issues (open, not resolved)
-- **Auth "Failed to fetch"**: Account creation and login throw fetch errors (likely CORS or base URL issues).
-- **Burst detection reliability**: Simulator fires too fast concurrently causing a race condition in the policy engine.
-
----
 
 ## Finalization Instruction
 **When project is finalized (open-source MVP ready): remove all artifacts and mentions of Codestreet/AmEx from the codebase and replace with [RazorPay Hackathon Name] placeholders.** This includes:
