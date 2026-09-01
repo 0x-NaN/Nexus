@@ -326,7 +326,7 @@ Database migrations run automatically on container startup via PostgreSQL's `doc
 
 ---
 
-## Future Works
+## Misc.
 
 <p align="center">
   <img src="frontend/public/FutureWorks.png" alt="Nexus Roadmap" width="800" />
