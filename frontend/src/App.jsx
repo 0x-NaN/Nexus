@@ -77,7 +77,11 @@ export default function App() {
 
   const onTriggerMisbehavior = async (type) => {
     try {
-      await fetch(`${API_BASE}/simulator/inject?type=${type}`, { method: 'POST' });
+      await fetch(`${API_BASE}/simulator/inject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ misbehavior_type: type }),
+      });
     } catch (e) { console.error(e); }
   };
 
