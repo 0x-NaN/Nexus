@@ -9,14 +9,6 @@ export default function DeveloperDashboard() {
   const [agents, setAgents] = useState([]);
   const [formData, setFormData] = useState({ name: '', category: '', spend_cap: 100 });
   const [adding, setAdding] = useState(false);
-  
-  // ── Graceful degradation (fallback resolve) — DEFERRED — see CONTEXT.md ──
-  // const [resolving, setResolving] = useState(false);
-  // const [resolveError, setResolveError] = useState(null);
-  // const [resolveProgress, setResolveProgress] = useState(0);
-  // const [replayCurrent, setReplayCurrent] = useState(0);
-  // const [replayTotal, setReplayTotal] = useState(0);
-  // const [replayReplayed, setReplayReplayed] = useState(0);
 
   const [metrics, setMetrics] = useState(null);
 
@@ -33,10 +25,6 @@ export default function DeveloperDashboard() {
       .then(setMetrics)
       .catch(console.error);
   };
-
-  // ── Graceful degradation (fallback resolve + replay WS) — DEFERRED — see CONTEXT.md ──
-  // const resetResolve = () => { ... };
-  // const handleResolve = async () => { ... };
 
   useEffect(() => {
     fetchAgents();
@@ -170,23 +158,6 @@ const handleAddAgent = async (e) => {
           ) : (
             <div className="grid grid-cols-2 gap-3 relative z-10">
               
-              <div className="bg-black/40 border border-white/5 p-4 rounded-lg flex flex-col justify-between group shadow-inner">
-                <span className="text-xs text-zinc-500 uppercase font-semibold">DB Status</span>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.5)] ${metrics.db_status === 'connected' ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-amber-500 shadow-amber-500/50'}`} />
-                  <span className={`text-sm font-bold ${metrics.db_status === 'connected' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {metrics.db_status.toUpperCase()}
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-black/40 border border-white/5 p-4 rounded-lg flex flex-col justify-between group shadow-inner">
-                <span className="text-xs text-zinc-500 uppercase font-semibold">Graceful Degradation</span>
-                <div className="text-sm font-bold text-zinc-500 mt-2 italic">
-                  Deferred to future work
-                </div>
-              </div>
-
               <div className="bg-black/40 border border-white/5 p-4 rounded-lg flex flex-col justify-between group shadow-inner">
                 <span className="text-xs text-zinc-500 uppercase font-semibold">Kill Switch</span>
                 <div className="flex items-center gap-2 mt-2">

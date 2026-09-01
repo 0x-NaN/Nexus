@@ -13,12 +13,6 @@ export default function App() {
   const [wsConnected, setWsConnected] = useState(false);
   const [simulatorStatus, setSimulatorStatus] = useState(null);
 
-  // ── LLM degradation tester — DEFERRED (graceful degradation) — see CONTEXT.md ──
-  // const [llmTestResult, setLlmTestResult] = useState(null);
-  // const [llmTestLoading, setLlmTestLoading] = useState(false);
-  // const [llmTestTier, setLlmTestTier] = useState('auto');
-  // const [llmTestScenario, setLlmTestScenario] = useState('');
-
   const fetchAgents = useCallback(() => {
     fetch(`${API_BASE}/agents`).then(r => r.json()).then(setAgents).catch(console.error);
   }, []);
@@ -86,10 +80,6 @@ export default function App() {
       await fetch(`${API_BASE}/simulator/inject?type=${type}`, { method: 'POST' });
     } catch (e) { console.error(e); }
   };
-
-  // ── LLM degradation test runner — DEFERRED (graceful degradation) — see CONTEXT.md ──
-  // const onRunLlmTest = async (tier) => {
-  //   ...
 
   return (
     <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">

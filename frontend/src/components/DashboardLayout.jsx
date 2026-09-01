@@ -173,9 +173,6 @@ const Badge = ({ children, variant = 'neutral', className }) => {
     sim: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20',
     'llm': 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
     'llm-hosted': 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20',
-    'fallback-pending': 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-[0_0_8px_rgba(245,158,11,0.3)]',
-    'fallback-resolved': 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.3)]',
-    'fallback-failed': 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_8px_rgba(244,63,94,0.3)]',
   };
   return (
     <span className={cn(`px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider`, variants[variant] || variants.neutral, className)}>
@@ -283,15 +280,6 @@ const ThemeKnob = ({ isLightMode, onToggle }) => {
 };
 
 const TransactionRow = ({ tx }) => {
-  // ── Graceful degradation (DEG badge) — DEFERRED — see CONTEXT.md ──
-  // const isFallback = tx.fallback_status === 'pending' || tx.fallback_status === 'resolved' || tx.fallback_status === 'failed';
-  // const fallbackVariant = tx.fallback_status === 'pending' ? 'fallback-pending' : 
-  //                         tx.fallback_status === 'resolved' ? 'fallback-resolved' : 
-  //                         tx.fallback_status === 'failed' ? 'fallback-failed' : null;
-  // const fallbackLabel = tx.fallback_status === 'pending' ? 'DEG' : 
-  //                       tx.fallback_status === 'resolved' ? 'DEG ✓' : 
-  //                       tx.fallback_status === 'failed' ? 'DEG ✗' : null;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -308,11 +296,6 @@ const TransactionRow = ({ tx }) => {
           <Badge variant={tx.source === 'llm-hosted' ? 'llm-hosted' : (tx.source === 'llm-local' ? 'llm' : 'sim')}>
             {tx.source === 'llm-hosted' ? 'LLM ☁' : (tx.source === 'llm-local' ? 'LLM' : 'SIM')}
           </Badge>
-          {/* {isFallback && (
-            <Badge variant={fallbackVariant}>
-              {fallbackLabel}
-            </Badge>
-          )} */}
         </div>
         <Badge variant={tx.decision}>{tx.decision}</Badge>
       </div>
@@ -333,21 +316,6 @@ const TransactionRow = ({ tx }) => {
           [Injected: {tx.misbehavior_type}]
         </div>
       )}
-
-      {/* {isFallback && tx.fallback_reason && (
-        <div className="text-xs text-amber-600 dark:text-amber-400/80 bg-amber-500/10 px-2 py-1.5 rounded mt-1 border border-amber-500/20 flex items-center gap-2">
-          <span className="font-mono">Fallback:</span>
-          <span>{tx.fallback_reason.replace(/_/g, ' ')}</span>
-          {tx.fallback_status === 'resolved' && tx.resolved_at && (
-            <span className="text-emerald-500 font-mono ml-2">
-              Resolved: {new Date(tx.resolved_at).toLocaleTimeString()}
-            </span>
-          )}
-          {tx.fallback_status === 'failed' && (
-            <span className="text-rose-500 font-mono ml-2">Replay Failed</span>
-          )}
-        </div>
-      )} */}
     </motion.div>
   );
 };
@@ -423,25 +391,6 @@ export default function DashboardLayout({
 }) {
   const [activeView, setActiveView] = useState('dashboard');
   const [isLightMode, setIsLightMode] = useState(false);
-  const [dbStatus, setDbStatus] = useState('connected'); // 'connected' | 'fallback_active'
-
-  // Poll /health every 5 seconds to keep DB status pill live
-  useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:8000'}/health`);
-        if (res.ok) {
-          const data = await res.json();
-          setDbStatus(data.db || 'connected');
-        }
-      } catch {
-        setDbStatus('fallback_active');
-      }
-    };
-    checkHealth();
-    const interval = setInterval(checkHealth, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (isLightMode) {
@@ -454,20 +403,6 @@ export default function DashboardLayout({
   const handleExportTrail = () => {
     const lines = transactions.map(tx => {
       let line = `[${new Date(tx.timestamp).toLocaleString()}] ${tx.decision.toUpperCase()} | Agent: ${tx.agent_name || tx.agent_id} | Amount: $${tx.amount} | Reason: ${tx.reason || 'N/A'}`;
-      
-      // Graceful degradation (fallback tags) deferred — see CONTEXT.md.
-      // if (tx.fallback_status) {
-      //   const fallbackLabel = tx.fallback_status === 'pending' ? 'DEG (PENDING)' : 
-      //                         tx.fallback_status === 'resolved' ? 'DEG (RESOLVED)' : 
-      //                         tx.fallback_status === 'failed' ? 'DEG (FAILED)' : 'DEG';
-      //   line += ` | Fallback: ${fallbackLabel}`;
-      //   if (tx.fallback_reason) {
-      //     line += ` (${tx.fallback_reason})`;
-      //   }
-      //   if (tx.fallback_status === 'resolved' && tx.resolved_at) {
-      //     line += ` | Resolved: ${new Date(tx.resolved_at).toLocaleString()}`;
-      //   }
-      // }
       
       return line;
     });
@@ -525,19 +460,6 @@ export default function DashboardLayout({
             <p className="text-sm text-muted-foreground">Real-time policy enforcement and monitoring</p>
           </div>
           <div className="flex items-center gap-6">
-             {/* DB Status Pill — updates live every 5s */}
-             <div className={cn(
-               "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold uppercase tracking-wider transition-colors duration-500",
-               dbStatus === 'connected'
-                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
-                 : "bg-amber-500/10 border-amber-500/40 text-amber-500"
-             )}>
-               <span className={cn(
-                 "w-1.5 h-1.5 rounded-full animate-pulse",
-                 dbStatus === 'connected' ? "bg-emerald-500" : "bg-amber-500"
-               )} />
-               {dbStatus === 'connected' ? 'DB Connected' : 'Fallback Active'}
-             </div>
              <div className="w-px h-8 bg-border/50" />
              <ThemeKnob isLightMode={isLightMode} onToggle={() => setIsLightMode(!isLightMode)} />
              <div className="w-px h-8 bg-border/50" />

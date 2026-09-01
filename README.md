@@ -23,7 +23,7 @@
 
 Nexus sits between any AI agent and the transaction it wants to execute, evaluating every request against policy before allowing it through. An operator can instantly halt the entire fleet via a kill switch. Every decision — allowed, denied, or flagged — is permanently logged with a reason and exportable for review.
 
-Nexus started as a solo build for a governance-themed fintech hackathon and has since been refactored into a submission for **Razorpay's 2026 Build Fest — Open Track**. It doesn't fit the platform's commerce or fraud-detection tracks by design: it isn't building agentic checkout or scoring fraud probability, it's the control plane that would sit underneath either — policy enforcement, kill-switch revocation, and an immutable audit trail for any fleet of money-moving agents, regardless of what they're transacting or with whom.
+Nexus is a submission for **Razorpay's 2026 Build Fest — Open Track**. It doesn't fit the platform's commerce or fraud-detection tracks by design: it isn't building agentic checkout or scoring fraud probability, it's the control plane that would sit underneath either — policy enforcement, kill-switch revocation, and an immutable audit trail for any fleet of money-moving agents, regardless of what they're transacting or with whom.
 
 **Why this matters now:** agent-to-agent commerce is projected to be enormous — analysts estimate AI agents could mediate trillions of dollars of global commerce within a few years — and most payment infrastructure today still assumes a human at checkout. Agent governance is lagging behind agent capability. Nexus is a small, honest attempt at closing that gap for teams who need real enforcement now, not a six-month platform evaluation.
 
@@ -203,33 +203,6 @@ Enterprise-grade agent governance platforms already exist — Arthur AI, Credo A
 The gap Nexus fills is different: **self-hosted, config-simple governance for small teams and independent builders** who need a kill switch, spend caps, and a real audit trail today — without a procurement cycle, a compliance certification process, or a hosted rules dashboard they don't control. Policy rules are YAML you own and version-control, not settings inside someone else's platform. Enforcement happens in-line at the point of transaction, not as after-the-fact monitoring.
 
 Nexus isn't trying to be an enterprise governance suite at scale — it's the governance layer for the other 99% of teams shipping autonomous payment agents who need enforcement now.
-
----
-
-## The Build, Honestly
-
-This project didn't start clean. Its earliest version was submitted to a different hackathon and wasn't shortlisted past the first round, despite scoring well on a technical read — the retrospective takeaway was about sequencing and packaging, not the underlying engineering: lead with proven, working functionality and hard numbers before problem framing or caveats. That lesson shaped how this version is presented.
-
-A few things broke along the way and got fixed rather than worked around:
-
-- **Burst detection was unreliable early on.** The simulator fired transactions concurrently, which meant some evaluated against a stale rate-check window before earlier transactions in the same burst had committed. The fix was straightforward once diagnosed — the injector now awaits each transaction sequentially instead of firing them all at once.
-- **Observability was originally planned around Prometheus and Grafana.** Given the constraints of a free-tier hosted deployment, that was scaled back in favor of a lightweight custom metrics endpoint that doesn't require running a separate monitoring stack.
-
-**Authentication (JWT/OIDC) is implemented on the backend — registration, login, token refresh, protected routes — but temporarily hidden from the UI** while a cross-origin request issue in the hosted environment gets resolved properly. We'd rather ship it right than ship it broken. Identity and multi-tenant access control for a system that governs real money movement is foundational work, and it's exactly the kind of thing we'd welcome the chance to build out properly in collaboration with the Razorpay team.
-
----
-
-## Future Work & Roadmap
-
-| Feature | Status | Description |
-|---|---|---|
-| **Auth (JWT/OIDC) — UI enablement** | Implemented, hidden pending a fix | Backend flow complete; re-enabling in the UI once the hosted-environment CORS issue is resolved |
-| **Adaptive anomaly detection** | Planned | Flag statistically unusual transactions per agent even when within hard limits, using rolling stats rather than a new ML stack |
-| **Agent trust score** | Planned | Decaying reputation score per agent based on historical violation rate — informational only, never auto-adjusting permissions |
-| **Dry-run / policy impact simulation** | Planned | Replay historical transactions against a proposed policy change before deploying it |
-| **Dynamic governance compliance** | Exploratory | Adjusting agent policy based on uploaded regulatory references (e.g. DPDP, EU AI Act) |
-
-**Deliberately not planned:** Redis, n8n, and Kubernetes/Kafka/microservices — none of these solve a problem Nexus actually has at its current scale, and adding them now would be premature complexity, not maturity.
 
 ---
 
