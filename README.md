@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="frontend/public/hero.png" alt="Nexus Dashboard" width="800" />
+  <img src="frontend/public/hero.jpg" alt="Nexus Dashboard" width="800" />
 </p>
 
 ---
@@ -77,7 +77,6 @@ React Dashboard (agent cards, live audit feed, kill switch, export, dev console)
 | **Database** | PostgreSQL 17 |
 | **Real-time** | WebSockets (server-push) |
 | **LLM (optional)** | Local Ollama tier for the Travel Agent when available; falls back to a deterministic scripted generator otherwise |
-| **CI/CD** | GitHub Actions (lint, test, Docker build) |
 | **Deployment** | Docker Compose (local) · Railway (backend + DB) · Netlify (frontend) |
 
 ---
@@ -171,7 +170,7 @@ Nexus/
 │   │   ├── models.py            # Pydantic schemas
 │   │   ├── ws_manager.py        # WebSocket manager
 │   │   ├── routers/             # API routes
-│   │   ├── services/            # Policy engine, kill switch, auth
+│   │   ├── services/            # Policy engine, kill switch
 │   │   └── simulator/           # Noise + Travel Agent
 │   ├── config/
 │   │   ├── agents.yaml          # Agent definitions
