@@ -50,6 +50,113 @@ React Dashboard (agent cards, live audit feed, kill switch, export, dev console)
 
 **Key design principle:** policy rules are config-defined at deploy time (YAML, loaded once at startup) and are **not** runtime-editable via any API. This is a deliberate governance choice, not an oversight — a policy layer that can be silently reconfigured at runtime isn't a policy layer worth trusting.
 
+### Detailed Component Diagram
+
+```mermaid
+flowchart TD
+
+subgraph group_ui["Operator UI"]
+  node_frontend["React dashboard<br/>frontend<br/>[App.jsx]"]
+  node_dashboard_layout["Dashboard layout<br/>UI shell"]
+  node_auth_context["Auth context<br/>client session state<br/>[AuthContext.jsx]"]
+end
+
+subgraph group_api["Governance API"]
+  node_api_app["FastAPI control plane<br/>API runtime<br/>[main.py]"]
+  node_transaction_api["Transaction API<br/>router<br/>[transactions.py]"]
+  node_agent_api["Agent API<br/>router<br/>[agents.py]"]
+  node_kill_switch_api["Kill-switch API<br/>router<br/>[kill_switch.py]"]
+  node_auth_service["Authentication<br/>router and service<br/>[auth.py]"]
+  node_simulator_api["Simulator API<br/>router<br/>[simulator.py]"]
+end
+
+subgraph group_enforcement["Enforcement services"]
+  node_policy_engine["Policy engine<br/>synchronous evaluator<br/>[policy_engine.py]"]
+  node_policy_rules["Versioned policy rules<br/>YAML policy<br/>[policy_rules.yaml]"]
+  node_agent_config["Agent fleet config<br/>YAML configuration<br/>[agents.yaml]"]
+  node_kill_switch["Fleet kill switch<br/>revocation service<br/>[kill_switch.py]"]
+  node_simulator["Agent simulator<br/>traffic generator<br/>[engine.py]"]
+  node_llm_agent["Travel LLM agent<br/>optional agent behavior<br/>[llm_agent.py]"]
+end
+
+subgraph group_state["State and events"]
+  node_transaction_logger["Transaction logger<br/>audit writer"]
+  node_websocket_manager["WebSocket broadcaster<br/>event distribution<br/>[ws_manager.py]"]
+  node_postgres[("PostgreSQL<br/>authoritative store<br/>[database.py]")]
+  node_schema["Audit schema<br/>database schema<br/>[schema.sql]"]
+end
+
+subgraph group_runtime["Runtime dependencies"]
+  node_compose{{"Docker Compose<br/>orchestration<br/>[docker-compose.yml]"}}
+  node_ollama["Ollama<br/>optional local LLM"]
+end
+
+node_compose -->|"runs"| node_frontend
+node_compose -->|"runs"| node_api_app
+node_compose -->|"runs"| node_postgres
+node_frontend -->|"renders"| node_dashboard_layout
+node_frontend -->|"uses"| node_auth_context
+node_frontend -->|"API requests"| node_api_app
+node_websocket_manager -->|"live updates"| node_frontend
+node_api_app -->|"mounts"| node_transaction_api
+node_api_app -->|"mounts"| node_agent_api
+node_api_app -->|"mounts"| node_kill_switch_api
+node_api_app -->|"authenticates via"| node_auth_service
+node_api_app -->|"mounts"| node_simulator_api
+node_transaction_api -->|"evaluates transaction"| node_policy_engine
+node_policy_engine -->|"checks first"| node_kill_switch
+node_policy_engine -->|"loads at startup"| node_policy_rules
+node_policy_engine -->|"loads at startup"| node_agent_config
+node_policy_engine -->|"records decision"| node_transaction_logger
+node_kill_switch_api -->|"changes state"| node_kill_switch
+node_kill_switch -->|"records state change"| node_transaction_logger
+node_agent_api -->|"manages agents"| node_postgres
+node_transaction_logger -->|"writes audit"| node_postgres
+node_schema -->|"defines"| node_postgres
+node_transaction_logger -->|"broadcasts persisted decisions"| node_websocket_manager
+node_kill_switch -->|"broadcasts state changes"| node_websocket_manager
+node_simulator_api -->|"controls"| node_simulator
+node_simulator -->|"submits transactions"| node_transaction_api
+node_simulator -->|"uses travel behavior"| node_llm_agent
+node_llm_agent -.->|"optional inference"| node_ollama
+
+click node_compose "https://github.com/0x-nan/nexus/blob/main/docker-compose.yml"
+click node_frontend "https://github.com/0x-nan/nexus/blob/main/frontend/src/App.jsx"
+click node_dashboard_layout "https://github.com/0x-nan/nexus/blob/main/frontend/src/components/DashboardLayout.jsx"
+click node_auth_context "https://github.com/0x-nan/nexus/blob/main/frontend/src/context/AuthContext.jsx"
+click node_api_app "https://github.com/0x-nan/nexus/blob/main/backend/app/main.py"
+click node_transaction_api "https://github.com/0x-nan/nexus/blob/main/backend/app/routers/transactions.py"
+click node_agent_api "https://github.com/0x-nan/nexus/blob/main/backend/app/routers/agents.py"
+click node_kill_switch_api "https://github.com/0x-nan/nexus/blob/main/backend/app/routers/kill_switch.py"
+click node_auth_service "https://github.com/0x-nan/nexus/blob/main/backend/app/services/auth.py"
+click node_simulator_api "https://github.com/0x-nan/nexus/blob/main/backend/app/routers/simulator.py"
+click node_policy_engine "https://github.com/0x-nan/nexus/blob/main/backend/app/services/policy_engine.py"
+click node_policy_rules "https://github.com/0x-nan/nexus/blob/main/backend/config/policy_rules.yaml"
+click node_agent_config "https://github.com/0x-nan/nexus/blob/main/backend/config/agents.yaml"
+click node_kill_switch "https://github.com/0x-nan/nexus/blob/main/backend/app/services/kill_switch.py"
+click node_transaction_logger "https://github.com/0x-nan/nexus/blob/main/backend/app/services/transaction_logger.py"
+click node_websocket_manager "https://github.com/0x-nan/nexus/blob/main/backend/app/ws_manager.py"
+click node_postgres "https://github.com/0x-nan/nexus/blob/main/backend/app/database.py"
+click node_schema "https://github.com/0x-nan/nexus/blob/main/backend/db/schema.sql"
+click node_simulator "https://github.com/0x-nan/nexus/blob/main/backend/app/simulator/engine.py"
+click node_llm_agent "https://github.com/0x-nan/nexus/blob/main/backend/app/simulator/llm_agent.py"
+
+classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
+classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+classDef toneMint fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+classDef toneRose fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
+class node_frontend,node_dashboard_layout,node_auth_context toneBlue
+class node_api_app,node_transaction_api,node_agent_api,node_kill_switch_api,node_auth_service,node_simulator_api toneAmber
+class node_policy_engine,node_policy_rules,node_agent_config,node_kill_switch,node_simulator,node_llm_agent toneMint
+class node_transaction_logger,node_websocket_manager,node_postgres,node_schema toneRose
+class node_compose,node_ollama toneIndigo
+```
+
+---
+
 **Ecosystem-agnostic by design:** Nexus doesn't assume any particular agent framework, LLM provider, or payment protocol. It exposes a plain transaction-evaluation endpoint — any fleet that can call it is governable, whether the agents behind it are built on LangChain, CrewAI, a custom script, or something else entirely. Governance is decoupled from whatever stack is generating the transactions.
 
 ---
@@ -216,6 +323,14 @@ cd frontend && npm run lint
 ```
 
 Database migrations run automatically on container startup via PostgreSQL's `docker-entrypoint-initdb.d/`.
+
+---
+
+## Future Works
+
+<p align="center">
+  <img src="frontend/public/FutureWorks.png" alt="Nexus Roadmap" width="800" />
+</p>
 
 ---
 
