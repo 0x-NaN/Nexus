@@ -205,28 +205,6 @@ Nexus isn't trying to be an enterprise governance suite at scale — it's the go
 
 ---
 
-## Deployment
-
-### Railway (Backend & DB)
-1. Create a Railway project and connect this GitHub repository.
-2. Add `POSTGRES_PASSWORD` as an environment variable.
-3. Railway detects `docker-compose.yml` and provisions the `backend` and `postgres` services.
-4. Verify the API at `https://<railway-app>.up.railway.app/health`.
-
-*Note: the hosted deployment runs without a local Ollama instance, so the Travel Agent operates in scripted mode in production. The LLM tier is a local-development enhancement, not a hosted dependency — governance behavior is identical either way.*
-
-### Netlify (Frontend)
-1. New site from Git, connect the same repository, base directory `frontend`.
-2. Build command: `cd frontend && npm install && npm run build`
-3. Publish directory: `frontend/dist`
-4. Environment variables:
-   ```
-   VITE_API_BASE=https://<railway-app>.up.railway.app
-   VITE_WS_BASE=wss://<railway-app>.up.railway.app
-   ```
-
----
-
 ## Development
 
 ```bash
