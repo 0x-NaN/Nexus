@@ -97,9 +97,11 @@ async def lifespan(app: FastAPI):
     # Startup
     await database.connect()
     app_logger.info("DB connected")
-    await _seed_agents_from_config()
-    await _ensure_kill_switch_row()
-    # Graceful degradation (fallback JSONL replay on reconnect) is deferred to
+  
+    #await _seed_agents_from_config()
+    #await _ensure_kill_switch_row()
+    
+  # Graceful degradation (fallback JSONL replay on reconnect) is deferred to
     # future work — see CONTEXT.md. Removed from startup.
     # replayed = await replay_pending()
     # if replayed:
